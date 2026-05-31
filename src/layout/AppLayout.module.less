@@ -1,0 +1,38 @@
+.layout {
+  height: 100vh;
+  max-height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  background: #f5f7fb;
+}
+
+.main {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1 1 0;
+  min-height: 0;
+  padding: 24px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.pageContainer {
+  min-width: 0;
+  flex: 1;
+}
+
+// 暗色主题（仅布局背景）
+.dark {
+  background: #0f172a;
+}
+
+@media (max-width: 720px) {
+  .content {
+    padding: 16px;
+  }
+}

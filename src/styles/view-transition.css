@@ -1,0 +1,24 @@
+/* View Transition 全局样式 */
+
+/* 为根元素启用 View Transition */
+:root {
+  view-transition-name: root;
+}
+
+/* 主题切换期间禁用所有 CSS transition，防止与 View Transition 动画冲突导致闪烁 */
+:root.theme-transition-active,
+:root.theme-transition-active *,
+:root.theme-transition-active *::before,
+:root.theme-transition-active *::after {
+  transition: none !important;
+}
+
+/* 确保旧快照层保持不透明，不参与默认淡出 */
+::view-transition-old(root) {
+  animation: none;
+}
+
+/* 确保新快照层不参与默认淡入，由 JS 通过 clip-path 控制展开 */
+::view-transition-new(root) {
+  animation: none;
+}
