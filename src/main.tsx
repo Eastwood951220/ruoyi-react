@@ -1,6 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot, type Root as ReactRoot } from 'react-dom/client'
 import 'antd/dist/reset.css'
+import dayjs from 'dayjs'
+import 'dayjs/locale/zh-cn'
+
+dayjs.locale('zh-cn')
+
 import './styles/view-transition.css'
 import { Root } from './App'
 

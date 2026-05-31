@@ -105,14 +105,14 @@ export function getFullPath(pathname: string, searchStr?: string): string {
 }
 
 /**
- * 获取标签标题，优先级：query.title > route meta title > fallback。
+ * 获取标签标题，优先级： route meta title > query.title > fallback。
  */
 export function getTagTitle(
   meta: { title?: string } | undefined,
   searchParams: URLSearchParams,
   fallback = '未命名',
 ): string {
-  return searchParams.get('title') || meta?.title || fallback
+  return  meta?.title || searchParams.get('title') || fallback
 }
 
 /**

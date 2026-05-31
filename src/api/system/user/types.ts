@@ -57,3 +57,62 @@ export interface UserInfo {
    */
   permissions: string[]
 }
+
+// ---- 用户管理模块 ----
+
+import type { PostVO } from '@/api/system/post/types'
+import type { RoleVO } from '@/api/system/role/types'
+
+export type UserStatus = '0' | '1'
+
+export interface UserVO {
+  userId: number | string
+  deptId?: number | string
+  userName: string
+  nickName?: string
+  deptName?: string
+  phonenumber?: string
+  email?: string
+  sex?: string
+  status: UserStatus
+  createTime?: string
+  remark?: string
+  roles?: RoleVO[]
+}
+
+export interface UserQuery {
+  pageNum: number
+  pageSize: number
+  userName?: string
+  nickName?: string
+  phonenumber?: string
+  status?: UserStatus | ''
+  deptId?: number | string
+  roleId?: number | string
+  beginTime?: string
+  endTime?: string
+}
+
+export interface UserForm {
+  userId?: number | string
+  deptId?: number | string | null
+  userName?: string
+  nickName?: string
+  password?: string
+  phonenumber?: string
+  email?: string
+  sex?: string
+  status: UserStatus
+  remark?: string
+  postIds?: Array<number | string> | null
+  roleIds?: Array<number | string> | null
+}
+
+/** getUser 接口返回结构，包含用户信息、岗位列表、角色列表 */
+export interface UserData {
+  user?: UserVO
+  posts: PostVO[]
+  roles: RoleVO[]
+  postIds?: Array<number | string>
+  roleIds?: Array<number | string>
+}

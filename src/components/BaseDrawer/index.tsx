@@ -7,6 +7,7 @@ export interface BaseDrawerProps {
   open: boolean
   title: string
   width?: number | string
+  size?: 'default' | 'large'
   loading?: boolean
   confirmLoading?: boolean
   destroyOnClose?: boolean
@@ -26,6 +27,7 @@ export default function BaseDrawer(props: BaseDrawerProps) {
     open,
     title,
     width = 560,
+    size,
     loading = false,
     confirmLoading = false,
     destroyOnClose = true,
@@ -55,9 +57,9 @@ export default function BaseDrawer(props: BaseDrawerProps) {
     <Drawer
       open={open}
       title={title}
-      width={width}
-      destroyOnClose={destroyOnClose}
-      maskClosable={maskClosable}
+      size={size ?? width}
+      destroyOnHidden={destroyOnClose}
+      mask={maskClosable}
       onClose={onClose}
       className={className}
       extra={extra}

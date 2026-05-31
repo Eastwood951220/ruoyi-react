@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { RouterProvider } from '@tanstack/react-router'
 import { App as AntApp, ConfigProvider, Spin, theme } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
 import { createAppRouter, router as staticRouter } from './routes'
 import { useAuthStore } from './store/useAuthStore'
 import { usePermissionStore } from './store/usePermissionStore'
@@ -70,6 +71,7 @@ export function Root() {
 
   return (
     <ConfigProvider
+      locale={zhCN}
       theme={{
         algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
         token: {

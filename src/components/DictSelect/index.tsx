@@ -63,9 +63,13 @@ export default function DictSelect(props: DictSelectProps) {
     return dictOptions.map((item) => transformOptionValue(item, valueType))
   }, [cache, dictType, options, valueType])
 
+  // 空字符串视为未选中，确保 placeholder 正常显示
+  const normalizedValue = selectProps.value === '' ? undefined : selectProps.value
+
   return (
     <Select<SelectValue>
       {...selectProps}
+      value={normalizedValue}
       allowClear={allowClear}
       placeholder={placeholder}
       options={selectOptions}
