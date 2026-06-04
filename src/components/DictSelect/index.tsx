@@ -48,24 +48,20 @@ export default function DictSelect(props: DictSelectProps) {
     ...selectProps
   } = props
 
+  const cache = useDictStore((state) => state.cache)
   const loadDict = useDictStore((state) => state.loadDict)
-
-  // 只订阅指定 dictType 的缓存值
-  const cachedOptions = useDictStore(
-    (state) => (dictType ? state.cache.get(dictType) : undefined),
-  )
 
   useEffect(() => {
     if (!dictType || options) return
-    if (cachedOptions) return
+    if (cache.get(dictType)) return
 
     void loadDict(dictType)
-  }, [cachedOptions, dictType, loadDict, options])
+  }, [cache, dictType, loadDict, options])
 
   const selectOptions = useMemo(() => {
-    const dictOptions = options ?? cachedOptions ?? []
+    const dictOptions = options ?? (dictType ? cache.get(dictType) ?? [] : [])
     return dictOptions.map((item) => transformOptionValue(item, valueType))
-  }, [cachedOptions, options, valueType])
+  }, [cache, dictType, options, valueType])
 
   // 空字符串视为未选中，确保 placeholder 正常显示
   const normalizedValue = selectProps.value === '' ? undefined : selectProps.value
