@@ -19,7 +19,9 @@ export interface BaseListPageProps<T extends object> {
   /** 工具栏左侧业务按钮 */
   toolbarLeft?: ReactNode
   /** 透传 Table 其他属性 */
-  tableProps?: Omit<TableProps<T>, 'rowKey' | 'columns' | 'dataSource' | 'loading' | 'pagination' | 'rowSelection'>
+  tableProps?: Omit<TableProps<T>, 'rowKey' | 'columns' | 'dataSource' | 'loading' | 'pagination' | 'rowSelection' | 'expandable'>
+  /** 树形展开配置（用于树形表格） */
+  expandable?: TableProps<T>['expandable']
   /** 刷新回调 */
   onRefresh?: () => void
   /** 查询区域默认是否显示 */

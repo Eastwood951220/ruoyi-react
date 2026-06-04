@@ -63,51 +63,40 @@ export default function UserPage() {
 
   // ---- 查询区域 ----
   const queryNode = (
-    <Form layout="inline">
-      <Form.Item>
+    <Form form={page.form} layout="inline">
+      <Form.Item name="userName">
         <Input
           placeholder="用户名称"
           allowClear
-          value={page.userName}
-          onChange={(e) => page.setUserName(e.target.value)}
         />
       </Form.Item>
-      <Form.Item>
+      <Form.Item name="nickName">
         <Input
           placeholder="用户昵称"
           allowClear
-          value={page.nickName}
-          onChange={(e) => page.setNickName(e.target.value)}
         />
       </Form.Item>
-      <Form.Item>
+      <Form.Item name="phonenumber">
         <Input
           placeholder="手机号码"
           allowClear
-          value={page.phonenumber}
-          onChange={(e) => page.setPhonenumber(e.target.value)}
         />
       </Form.Item>
-      <Form.Item>
+      <Form.Item name="status">
         <DictSelect
           options={sys_normal_disable}
-          value={page.status}
-          onChange={(val) => page.setStatus(val ?? '')}
           placeholder="用户状态"
           allowClear
           style={{ width: 160 }}
         />
       </Form.Item>
-      <Form.Item>
-        <RangePicker
-          value={page.dateRange}
-          onChange={(dates) => page.setDateRange(dates as [import('dayjs').Dayjs, import('dayjs').Dayjs] | null)}
-        />
+      <Form.Item name="dateRange">
+        <RangePicker />
       </Form.Item>
       <Form.Item>
         <Space>
-          <Button type="primary" onClick={page.handleSearch}>搜索</Button>
-          <Button onClick={page.handleReset}>重置</Button>
+          <Button type="primary" onClick={() => page.handleSearch()}>搜索</Button>
+          <Button onClick={() => page.handleReset()}>重置</Button>
         </Space>
       </Form.Item>
     </Form>
@@ -248,10 +237,7 @@ export default function UserPage() {
             total: page.total,
             showSizeChanger: true,
             showTotal: (t) => `共 ${t} 条`,
-            onChange: (p, s) => {
-              page.setPageNum(p)
-              page.setPageSize(s)
-            },
+            onChange: page.changePage,
           }}
           rowSelection={{
             selectedRowKeys: page.selectedRowKeys,

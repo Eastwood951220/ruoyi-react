@@ -9,10 +9,31 @@ export interface DeptVO {
   deptId: number | string
   parentId?: number | string
   deptName: string
+  deptCategory?: string
   orderNum?: number
   leader?: string
   phone?: string
   email?: string
   status?: string
+  parentName?: string
   children?: DeptVO[]
+  ancestors?: string
+}
+
+export interface DeptForm {
+  deptId?: number | string
+  parentId?: number | string
+  deptName?: string
+  deptCategory?: string
+  orderNum?: number
+  leader?: string
+  phone?: string
+  email?: string
+  status?: string
+}
+
+export interface DeptQuery {
+  deptName?: string
+  deptCategory?: string
+  status?: string
 }

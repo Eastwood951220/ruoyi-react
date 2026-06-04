@@ -62,4 +62,9 @@ export function importTemplate() {
   return download('/system/user/importTemplate', {}, `user_template_${Date.now()}.xlsx`)
 }
 
+/** 查询指定部门下的用户列表 */
+export function listUserByDeptId(deptId: number | string) {
+  return request.get<ApiResponse<UserVO[]>>(`/system/user/list/dept/${deptId}`)
+}
+
 export type { LoginUser, UserInfo } from './types'

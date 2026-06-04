@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { message, Modal } from 'antd'
+import { Form, message, Modal } from 'antd'
 import type { Dayjs } from 'dayjs'
 import {
   listUser,
@@ -14,6 +14,7 @@ import { deptTreeSelect } from '@/api/system/dept'
 import type { DeptTreeNode } from '@/api/system/dept/types'
 import { getConfigKey } from '@/api/system/config'
 import { useAuthStore } from '@/store/useAuthStore'
+import { useTableList } from '@/hooks/useTableList'
 
 function filterDisabledDept(nodes: DeptTreeNode[]): DeptTreeNode[] {
   return nodes
@@ -24,35 +25,20 @@ function filterDisabledDept(nodes: DeptTreeNode[]): DeptTreeNode[] {
     }))
 }
 
-function buildQueryParams(
-  query: UserQuery,
-  dateRange?: [Dayjs, Dayjs] | null,
-): UserQuery {
-  const params = { ...query }
-  if (dateRange?.[0] && dateRange?.[1]) {
-    params.beginTime = dateRange[0].format('YYYY-MM-DD HH:mm:ss')
-    params.endTime = dateRange[1].format('YYYY-MM-DD HH:mm:ss')
-  }
-  return params
+type UserSearchForm = {
+  userName?: string
+  nickName?: string
+  phonenumber?: string
+  status?: UserStatus | ''
+  dateRange?: [Dayjs, Dayjs] | null
 }
+
+type UserListParams = Omit<UserQuery, 'pageNum' | 'pageSize'>
 
 export function useUserPage() {
   const currentUserId = useAuthStore((state) => state.userInfo?.userId)
+  const [form] = Form.useForm<UserSearchForm>()
 
-  // ---- 查询参数 ----
-  const [userName, setUserName] = useState('')
-  const [nickName, setNickName] = useState('')
-  const [phonenumber, setPhonenumber] = useState('')
-  const [status, setStatus] = useState<UserStatus | ''>('')
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null)
-  const [deptId, setDeptId] = useState<number | string | undefined>()
-
-  // ---- 表格状态 ----
-  const [dataList, setDataList] = useState<UserVO[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [pageNum, setPageNum] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
   const [selectedRowKeys, setSelectedRowKeys] = useState<Array<number | string>>([])
 
   // ---- 部门树 ----
@@ -71,79 +57,74 @@ export function useUserPage() {
   // ---- 选项数据 ----
   const [initPassword, setInitPassword] = useState('')
 
-  const cancelledRef = useRef(false)
+  const mountedRef = useRef(false)
 
-  // ---- 获取列表 ----
-  const doFetch = useCallback(
-    (page: number, size: number) => {
-      const query: UserQuery = {
-        pageNum: page,
-        pageSize: size,
-        userName,
-        nickName,
-        phonenumber,
-        status,
-        deptId,
-      }
-      const params = buildQueryParams(query, dateRange)
-      setLoading(true)
-      listUser(params)
-        .then((res) => {
-          if (cancelledRef.current) return
-          setDataList(res.rows ?? [])
-          setTotal(res.total ?? 0)
-        })
-        .finally(() => {
-          if (!cancelledRef.current) {
-            setLoading(false)
-          }
-        })
-    },
-    [userName, nickName, phonenumber, status, deptId, dateRange],
-  )
+  const buildQueryParams = useCallback((formValues: UserSearchForm): UserListParams => {
+    const params: UserListParams = {
+      userName: formValues.userName ?? '',
+      nickName: formValues.nickName ?? '',
+      phonenumber: formValues.phonenumber ?? '',
+      status: formValues.status ?? '',
+      deptId: selectedDeptId,
+    }
+    if (formValues.dateRange?.[0] && formValues.dateRange?.[1]) {
+      params.beginTime = formValues.dateRange[0].format('YYYY-MM-DD HH:mm:ss')
+      params.endTime = formValues.dateRange[1].format('YYYY-MM-DD HH:mm:ss')
+    }
+    return params
+  }, [selectedDeptId])
+
+  const {
+    dataList,
+    total,
+    loading,
+    pageNum,
+    pageSize,
+    search,
+    reset,
+    refresh,
+    changePage,
+  } = useTableList<UserVO, UserSearchForm, UserListParams>({
+    form,
+    request: listUser,
+    buildParams: buildQueryParams,
+  })
 
   // ---- 获取部门树 ----
-  const fetchDeptTree = useCallback(() => {
+  const fetchDeptTree = useCallback(async () => {
     setDeptLoading(true)
-    deptTreeSelect()
-      .then((res) => {
-        if (cancelledRef.current) return
-        const data = res.data ?? []
-        setDeptOptions(data)
-        setEnabledDeptOptions(filterDisabledDept(data))
-      })
-      .finally(() => {
-        if (!cancelledRef.current) {
-          setDeptLoading(false)
-        }
-      })
+    try {
+      const res = await deptTreeSelect()
+      if (!mountedRef.current) return
+      const data = res.data ?? []
+      setDeptOptions(data)
+      setEnabledDeptOptions(filterDisabledDept(data))
+    } finally {
+      if (mountedRef.current) {
+        setDeptLoading(false)
+      }
+    }
   }, [])
 
   // ---- 获取初始密码 ----
-  const fetchInitPassword = useCallback(() => {
-    getConfigKey('sys.user.initPassword').then((res) => {
-      if (cancelledRef.current) return
-      setInitPassword(res.data ?? '')
-    })
+  const fetchInitPassword = useCallback(async () => {
+    const res = await getConfigKey('sys.user.initPassword')
+    if (!mountedRef.current) return
+    setInitPassword(res.data ?? '')
   }, [])
 
   // ---- 初始化 ----
   useEffect(() => {
-    cancelledRef.current = false
-    fetchDeptTree() // eslint-disable-line react-hooks/set-state-in-effect
-    fetchInitPassword()
+    mountedRef.current = true
+    const timer = window.setTimeout(() => {
+      void fetchDeptTree()
+      void fetchInitPassword()
+    }, 0)
     return () => {
-      cancelledRef.current = true
+      window.clearTimeout(timer)
+      mountedRef.current = false
     }
   }, [fetchDeptTree, fetchInitPassword])
-
-  useEffect(() => {
-    cancelledRef.current = false
-    doFetch(pageNum, pageSize) // eslint-disable-line react-hooks/set-state-in-effect
-    return () => {
-      cancelledRef.current = true
-    }
-  }, [doFetch, pageNum, pageSize])
 
   // ---- 单选/多选状态 ----
   const single = selectedRowKeys.length !== 1
@@ -151,35 +132,22 @@ export function useUserPage() {
 
   // ---- 搜索 ----
   const handleSearch = () => {
-    setPageNum(1)
-    doFetch(1, pageSize)
+    search()
   }
 
   // ---- 重置 ----
   const handleReset = () => {
-    setUserName('')
-    setNickName('')
-    setPhonenumber('')
-    setStatus('')
-    setDateRange(null)
-    setDeptId(undefined)
     setSelectedDeptId(undefined)
-    setPageNum(1)
-    // 需要等状态更新后再请求，使用 setTimeout 确保状态已更新
-    setTimeout(() => {
-      doFetch(1, pageSize)
-    }, 0)
+    reset({ deptId: undefined })
   }
 
   // ---- 部门节点点击 ----
   const handleSelectDept = useCallback(
     (id: number | string | undefined) => {
       setSelectedDeptId(id)
-      setDeptId(id)
-      setPageNum(1)
-      // 状态更新后由 useEffect 触发 doFetch
+      search({ deptId: id })
     },
-    [],
+    [search],
   )
 
   // ---- 删除 ----
@@ -193,7 +161,7 @@ export function useUserPage() {
         await delUser(ids)
         message.success('删除成功')
         setSelectedRowKeys([])
-        doFetch(pageNum, pageSize)
+        refresh()
       },
     })
   }
@@ -208,11 +176,11 @@ export function useUserPage() {
       onOk: async () => {
         await changeUserStatus(row.userId, newStatus)
         message.success('修改成功')
-        doFetch(pageNum, pageSize)
+        refresh()
       },
       onCancel: () => {
         // 回滚：由于 Switch 可能已经改变了本地状态，需要刷新列表
-        doFetch(pageNum, pageSize)
+        refresh()
       },
     })
   }
@@ -260,16 +228,12 @@ export function useUserPage() {
 
   // ---- 导出 ----
   const handleExport = () => {
-    const query: UserQuery = {
+    const formValues = form.getFieldsValue()
+    const params: UserQuery = {
+      ...buildQueryParams(formValues),
       pageNum,
       pageSize,
-      userName,
-      nickName,
-      phonenumber,
-      status,
-      deptId,
     }
-    const params = buildQueryParams(query, dateRange)
     void exportUser(params)
   }
 
@@ -286,35 +250,24 @@ export function useUserPage() {
   // ---- 导入成功 ----
   const handleImportSuccess = () => {
     setImportOpen(false)
-    doFetch(pageNum, pageSize)
+    refresh()
   }
 
   // ---- 刷新 ----
   const handleRefresh = () => {
-    doFetch(pageNum, pageSize)
+    refresh()
   }
 
   return {
     // 查询参数
-    userName,
-    setUserName,
-    nickName,
-    setNickName,
-    phonenumber,
-    setPhonenumber,
-    status,
-    setStatus,
-    dateRange,
-    setDateRange,
-    deptId,
+    form,
     // 表格
     dataList,
     total,
     loading,
     pageNum,
-    setPageNum,
     pageSize,
-    setPageSize,
+    changePage,
     selectedRowKeys,
     setSelectedRowKeys,
     single,

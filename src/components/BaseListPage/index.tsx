@@ -131,6 +131,7 @@ export default function BaseListPage<T extends object>(props: BaseListPageProps<
     queryNode,
     toolbarLeft,
     tableProps,
+    expandable,
     onRefresh,
     queryVisibleDefault = true,
     storageKey,
@@ -266,6 +267,7 @@ export default function BaseListPage<T extends object>(props: BaseListPageProps<
             loading={loading}
             pagination={pagination}
             rowSelection={rowSelection}
+            expandable={expandable}
             scroll={{ y: tableScrollY, x: 'max-content' }}
             {...tableProps}
           />

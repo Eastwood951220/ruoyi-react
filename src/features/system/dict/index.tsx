@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useState} from 'react'
 import {Button, DatePicker, Form, Input, message, Modal, Space} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
 import {PlusOutlined, SyncOutlined} from '@ant-design/icons'
@@ -6,8 +6,9 @@ import {useNavigate} from '@tanstack/react-router'
 import type {Dayjs} from 'dayjs'
 import AuthButton from '@/components/AuthButton'
 import BaseListPage from '@/components/BaseListPage'
+import {useTableList} from '@/hooks/useTableList'
 import {delType, exportType, listType, refreshCache} from '@/api/system/dict/type'
-import type {DictTypeVO} from '@/api/system/dict/type/types'
+import type {DictTypeQuery, DictTypeVO} from '@/api/system/dict/type/types'
 import {useDictStore} from '@/store/useDictStore'
 import DictTypeDrawer from './components/DictTypeDrawer'
 
@@ -19,63 +20,42 @@ type DictSearchForm = {
 	dateRange?: [Dayjs, Dayjs]
 }
 
+type DictTypeListParams = Omit<DictTypeQuery, 'pageNum' | 'pageSize'>
+
 export default function DictPage() {
 	const navigate = useNavigate()
 	const [form] = Form.useForm<DictSearchForm>()
-	const [dataList, setDataList] = useState<DictTypeVO[]>([])
-	const [total, setTotal] = useState(0)
-	const [loading, setLoading] = useState(false)
-	const [pageNum, setPageNum] = useState(1)
-	const [pageSize, setPageSize] = useState(10)
 	const [selectedRowKeys, setSelectedRowKeys] = useState<Array<number | string>>([])
 	const [drawerOpen, setDrawerOpen] = useState(false)
 	const [editDictId, setEditDictId] = useState<number | string | undefined>()
 	const cleanDict = useDictStore((state) => state.cleanDict)
-	const cancelledRef = useRef(false)
-	
-	const doFetch = useCallback((page: number, size: number) => {
-		const formValues = form.getFieldsValue()
+
+	const buildQueryParams = useCallback((formValues: DictSearchForm): DictTypeListParams => {
 		const beginTime = formValues.dateRange?.[0]?.format('YYYY-MM-DD') ?? ''
 		const endTime = formValues.dateRange?.[1]?.format('YYYY-MM-DD') ?? ''
-		setLoading(true)
-		listType({
+		return {
 			dictName: formValues.dictName ?? '',
 			dictType: formValues.dictType ?? '',
 			beginTime,
 			endTime,
-			pageNum: page,
-			pageSize: size,
-		})
-			.then((res) => {
-				if (cancelledRef.current) return
-				setDataList(res.rows ?? [])
-				setTotal(res.total ?? 0)
-			})
-			.finally(() => {
-				if (!cancelledRef.current) {
-					setLoading(false)
-				}
-			})
-	}, [form])
-	
-	useEffect(() => {
-		cancelledRef.current = false
-		doFetch(pageNum, pageSize) // eslint-disable-line react-hooks/set-state-in-effect
-		return () => {
-			cancelledRef.current = true
 		}
-	}, [doFetch, pageNum, pageSize])
-	
-	const handleSearch = () => {
-		setPageNum(1)
-		doFetch(1, pageSize)
-	}
-	
-	const handleReset = () => {
-		form.resetFields()
-		setPageNum(1)
-		doFetch(1, pageSize)
-	}
+	}, [])
+
+	const {
+		dataList,
+		total,
+		loading,
+		pageNum,
+		pageSize,
+		search: handleSearch,
+		reset: handleReset,
+		refresh,
+		changePage,
+	} = useTableList<DictTypeVO, DictSearchForm, DictTypeListParams>({
+		form,
+		request: listType,
+		buildParams: buildQueryParams,
+	})
 	
 	const handleDelete = (dictId: number | string) => {
 		Modal.confirm({
@@ -84,7 +64,7 @@ export default function DictPage() {
 			onOk: async () => {
 				await delType(dictId)
 				message.success('删除成功')
-				doFetch(pageNum, pageSize)
+				refresh()
 			},
 		})
 	}
@@ -100,21 +80,14 @@ export default function DictPage() {
 				await delType(selectedRowKeys)
 				message.success('删除成功')
 				setSelectedRowKeys([])
-				doFetch(pageNum, pageSize)
+				refresh()
 			},
 		})
 	}
 	
 	const handleExport = () => {
 		const formValues = form.getFieldsValue()
-		const beginTime = formValues.dateRange?.[0]?.format('YYYY-MM-DD') ?? ''
-		const endTime = formValues.dateRange?.[1]?.format('YYYY-MM-DD') ?? ''
-		void exportType({
-			dictName: formValues.dictName ?? '',
-			dictType: formValues.dictType ?? '',
-			beginTime,
-			endTime
-		})
+		void exportType(buildQueryParams(formValues))
 	}
 	
 	const handleRefreshCache = async () => {
@@ -141,7 +114,7 @@ export default function DictPage() {
 	const handleDrawerSuccess = () => {
 		setDrawerOpen(false)
 		setEditDictId(undefined)
-		doFetch(pageNum, pageSize)
+		refresh()
 	}
 	
 	const handleViewData = (record: DictTypeVO) => {
@@ -165,8 +138,8 @@ export default function DictPage() {
 			</Form.Item>
 			<Form.Item>
 				<Space>
-					<Button type="primary" onClick={handleSearch}>搜索</Button>
-					<Button onClick={handleReset}>重置</Button>
+					<Button type="primary" onClick={() => handleSearch()}>搜索</Button>
+					<Button onClick={() => handleReset()}>重置</Button>
 				</Space>
 			</Form.Item>
 		</Form>
@@ -237,11 +210,7 @@ export default function DictPage() {
 					total,
 					showSizeChanger: true,
 					showTotal: (t) => `共 ${t} 条`,
-					onChange: (page, size) => {
-						setPageNum(page)
-						setPageSize(size)
-						doFetch(page, size)
-					},
+					onChange: changePage,
 				}}
 				rowSelection={{
 					selectedRowKeys,
@@ -249,7 +218,7 @@ export default function DictPage() {
 				}}
 				queryNode={queryNode}
 				toolbarLeft={toolbarLeft}
-				onRefresh={() => doFetch(pageNum, pageSize)}
+				onRefresh={refresh}
 				storageKey="system-dict-type-columns"
 			/>
 			

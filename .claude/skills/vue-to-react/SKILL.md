@@ -15,6 +15,7 @@ description: 将 RuoYi Vue (plus-ui) 管理页面改造为 React + TypeScript + 
 - **严格 TypeScript**，不允许 `any`、`as any`、`@ts-ignore`
 - **复用已有组件**：`BaseListPage`、`BaseDrawer`、`AuthButton`、`Auth`、`DictSelect`、`DictTag`、`useDict`
 - **保持业务能力一致**：查询、分页、增删改、状态切换、导入导出、权限控制
+- **不压制 React Hooks lint**：禁止生成 `// eslint-disable-line react-hooks/set-state-in-effect` 和 `// eslint-disable-line react-hooks/exhaustive-deps`，必须通过调整依赖、事件时机或组件结构解决
 
 ## 2. 目录结构映射
 
@@ -198,34 +199,196 @@ const [editId, setEditId] = useState<number | string | undefined>()
 | `proxy.getConfigKey(key)` | `getConfigKey(key)` from `@/api/system/config` |
 | `proxy.parseTime(time)` | dayjs 格式化或直接展示 |
 
-### 4.4 取消请求模式
+### 4.4 列表页请求模式
 
-React 使用 `cancelledRef` 防止组件卸载后更新状态：
+迁移 Vue 列表页时，凡是包含查询表单、分页表格、重置查询、删除后刷新、新增/编辑后刷新、导出、批量删除、表格 loading、`total`、`pageNum`、`pageSize` 任一能力，必须优先复用项目已有的统一列表 Hook 或 `BaseListPage` 内置数据加载能力。
 
-```ts
+禁止在每个页面复制以下模板：
+
+```tsx
+const [dataList, setDataList] = useState([])
+const [total, setTotal] = useState(0)
+const [loading, setLoading] = useState(false)
+const [pageNum, setPageNum] = useState(1)
+const [pageSize, setPageSize] = useState(10)
 const cancelledRef = useRef(false)
+const doFetch = useCallback(...)
+useEffect(...)
+const handleSearch = ...
+const handleReset = ...
+```
 
-useEffect(() => {
-  cancelledRef.current = false
-  doFetch(pageNum, pageSize)
-  return () => {
-    cancelledRef.current = true
+开始改造前先搜索项目是否已有 `useTableList`、`useListPage`、`useTableRequest`、`useBaseListPage` 等 Hook。若没有，应新增 `src/hooks/useTableList.ts`，集中管理列表请求、分页、搜索、重置、刷新、卸载保护和请求序列号保护。
+
+推荐 Hook API：
+
+```tsx
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FormInstance } from 'antd'
+
+export type TableListResult<T> = {
+  rows?: T[]
+  total?: number
+  list?: T[]
+  data?: T[]
+}
+
+export type UseTableListOptions<T, F extends object, P extends object> = {
+  form: FormInstance<F>
+  request: (params: P & { pageNum: number; pageSize: number }) => Promise<TableListResult<T>>
+  buildParams: (formValues: F) => P
+  defaultPageSize?: number
+  immediate?: boolean
+}
+```
+
+Hook 返回值至少包含：
+
+```tsx
+dataList
+total
+loading
+pageNum
+pageSize
+setDataList
+setTotal
+search
+reset
+refresh
+changePage
+fetchList
+```
+
+Hook 内部必须使用 `mountedRef` 和请求序列号保护，避免组件卸载后继续 `setState`，也避免旧请求覆盖新请求。API 响应必须兼容常见列表格式：
+
+```tsx
+res.rows ?? res.list ?? res.data ?? []
+res.total ?? 0
+```
+
+### 4.5 React Hooks lint 约束
+
+生成代码和重构代码时禁止通过关闭 ESLint 规则绕过 Hooks 问题：
+
+```tsx
+// 禁止
+// eslint-disable-line react-hooks/set-state-in-effect
+// eslint-disable-next-line react-hooks/set-state-in-effect
+// eslint-disable-line react-hooks/exhaustive-deps
+// eslint-disable-next-line react-hooks/exhaustive-deps
+```
+
+遇到 `react-hooks/set-state-in-effect` 必须调整架构，通常是把列表请求集中到统一 Hook、把弹窗初始化放到 `afterOpenChange`、把派生状态改为计算值，或把请求触发移动到用户动作/分页事件中。禁止用注释忽略。
+
+处理原则：
+
+- `exhaustive-deps`：`useEffect` 依赖必须完整；初始化函数、回调函数应使用 `useCallback` 包裹，并写全依赖。
+- `set-state-in-effect`：不要用 effect 专门把 props/open 同步到本地 state；列表页业务请求不允许手写重复 `useEffect + doFetch`；优先在统一 Hook、用户动作、分页回调、`BaseDrawer`/`Modal` 的 `afterOpenChange` 等位置处理。
+- 弹窗/抽屉打开时需要重置表单、清空选中项、回到第一页并请求数据时，优先使用 `afterOpenChange`：
+
+```tsx
+const handleOpenChange = (visible: boolean) => {
+  if (!visible || !roleId) return
+  setSelectedRowKeys([])
+  reset()
+}
+
+<Modal open={open} afterOpenChange={handleOpenChange} />
+```
+
+只有真正的订阅、异步请求、外部系统同步适合放进 `useEffect`；这类 effect 也必须保留完整依赖和卸载保护。
+
+### 4.6 列表页改造示例
+
+以字典类型页面为例，业务页只保留字段映射、按钮事件、抽屉状态和表格列定义：
+
+```tsx
+const buildQueryParams = useCallback((formValues: DictSearchForm) => {
+  const beginTime = formValues.dateRange?.[0]?.format('YYYY-MM-DD') ?? ''
+  const endTime = formValues.dateRange?.[1]?.format('YYYY-MM-DD') ?? ''
+
+  return {
+    dictName: formValues.dictName ?? '',
+    dictType: formValues.dictType ?? '',
+    beginTime,
+    endTime,
   }
-}, [doFetch, pageNum, pageSize])
+}, [])
 
-// 在异步回调中检查
-const doFetch = useCallback((page: number, size: number) => {
-  setLoading(true)
-  listUser(params)
-    .then((res) => {
-      if (cancelledRef.current) return
-      setDataList(res.rows ?? [])
-      setTotal(res.total ?? 0)
-    })
-    .finally(() => {
-      if (!cancelledRef.current) setLoading(false)
-    })
-}, [/* query params */])
+const {
+  dataList,
+  total,
+  loading,
+  pageNum,
+  pageSize,
+  search: handleSearch,
+  reset: handleReset,
+  refresh,
+  changePage,
+} = useTableList<DictTypeVO, DictSearchForm, ReturnType<typeof buildQueryParams>>({
+  form,
+  request: listType,
+  buildParams: buildQueryParams,
+})
+```
+
+删除、批量删除、状态切换、抽屉提交成功后的刷新统一调用：
+
+```tsx
+refresh()
+```
+
+分页变化统一调用：
+
+```tsx
+changePage(nextPageNum, nextPageSize)
+```
+
+导出逻辑必须复用 `buildQueryParams`，避免重复拼接查询字段：
+
+```tsx
+const handleExport = () => {
+  const formValues = form.getFieldsValue()
+  void exportType(buildQueryParams(formValues))
+}
+```
+
+如果 `BaseListPage` 已支持受控分页、loading 和刷新，页面必须用 Hook 返回值接入。当前项目的 `BaseListPage` 使用 `pagination` 和 `onRefresh`：
+
+```tsx
+<BaseListPage<DictTypeVO>
+  rowKey="dictId"
+  columns={columns}
+  dataSource={dataList}
+  loading={loading}
+  pagination={{
+    current: pageNum,
+    pageSize,
+    total,
+    showSizeChanger: true,
+    showTotal: (t) => `共 ${t} 条`,
+    onChange: changePage,
+  }}
+  queryNode={queryNode}
+  toolbarLeft={toolbarLeft}
+  onRefresh={refresh}
+/>
+```
+
+如果当前项目 `BaseListPage` 属性名不同，必须先阅读组件类型定义，按已有类型接入，不允许猜测属性名。
+
+### 4.7 列表页扫描要求
+
+迁移或批量修复前必须扫描以下关键字，并逐个判断是否属于同类列表模式；属于同类模式的页面统一改造为 `useTableList` 或项目已有 Hook，不属于列表页的代码不要机械修改。
+
+```text
+react-hooks/set-state-in-effect
+eslint-disable-line react-hooks/set-state-in-effect
+eslint-disable-next-line react-hooks/set-state-in-effect
+cancelledRef
+const doFetch = useCallback
+const handleSearch = () => {
+const handleReset = () => {
 ```
 
 ## 5. 模板 → JSX 改造
@@ -433,10 +596,10 @@ const handleStatusChange = (row: UserVO) => {
     onOk: async () => {
       await changeUserStatus(row.userId, newStatus)
       message.success('修改成功')
-      doFetch(pageNum, pageSize)
+      refresh()
     },
     onCancel: () => {
-      doFetch(pageNum, pageSize) // 回滚
+      refresh() // 回滚
     },
   })
 }
@@ -492,16 +655,7 @@ const handleUpload: UploadProps['customRequest'] = (options) => {
 
 ```ts
 export function useXxxPage() {
-  // ---- 查询参数 ----
-  const [field1, setField1] = useState('')
-  const [dateRange, setDateRange] = useState<[Dayjs, Dayjs] | null>(null)
-
-  // ---- 表格状态 ----
-  const [dataList, setDataList] = useState<XxxVO[]>([])
-  const [total, setTotal] = useState(0)
-  const [loading, setLoading] = useState(false)
-  const [pageNum, setPageNum] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [form] = Form.useForm<XxxSearchForm>()
   const [selectedRowKeys, setSelectedRowKeys] = useState<Array<number | string>>([])
 
   // ---- 抽屉 ----
@@ -512,26 +666,38 @@ export function useXxxPage() {
   const single = selectedRowKeys.length !== 1
   const multiple = selectedRowKeys.length === 0
 
-  // ---- 数据获取 ----
-  const cancelledRef = useRef(false)
-  const doFetch = useCallback((page: number, size: number) => {
-    // ...
-  }, [/* query deps */])
+  // ---- 列表查询参数映射 ----
+  const buildQueryParams = useCallback((formValues: XxxSearchForm): XxxListParams => ({
+    field1: formValues.field1 ?? '',
+    beginTime: formValues.dateRange?.[0]?.format('YYYY-MM-DD HH:mm:ss') ?? '',
+    endTime: formValues.dateRange?.[1]?.format('YYYY-MM-DD HH:mm:ss') ?? '',
+  }), [])
 
-  useEffect(() => {
-    cancelledRef.current = false
-    doFetch(pageNum, pageSize)
-    return () => { cancelledRef.current = true }
-  }, [doFetch, pageNum, pageSize])
+  // ---- 数据获取 ----
+  const {
+    dataList,
+    total,
+    loading,
+    pageNum,
+    pageSize,
+    search,
+    reset,
+    refresh,
+    changePage,
+  } = useTableList<XxxVO, XxxSearchForm, XxxListParams>({
+    form,
+    request: listXxx,
+    buildParams: buildQueryParams,
+  })
 
   // ---- 初始化 ----
   useEffect(() => {
-    // 获取树、配置等
+    // 获取树、配置等非列表数据；不要在这里编排表格请求
   }, [])
 
   // ---- 动作 ----
-  const handleSearch = () => { setPageNum(1); doFetch(1, pageSize) }
-  const handleReset = () => { /* 重置所有查询参数 */ }
+  const handleSearch = () => search()
+  const handleReset = () => reset()
   const handleDelete = (ids) => { Modal.confirm({...}) }
   const handleAdd = () => { setEditId(undefined); setDrawerOpen(true) }
   const handleUpdate = (row?) => { setEditId(row?.id ?? selectedRowKeys[0]); setDrawerOpen(true) }
@@ -539,12 +705,12 @@ export function useXxxPage() {
 
   return {
     // 状态 + setter
-    dataList, total, loading, pageNum, setPageNum, pageSize, setPageSize,
+    form, dataList, total, loading, pageNum, pageSize, changePage,
     selectedRowKeys, setSelectedRowKeys, single, multiple,
     drawerOpen, editId,
     // 动作
     handleSearch, handleReset, handleDelete, handleAdd, handleUpdate,
-    handleDrawerClose, handleRefresh, doFetch,
+    handleDrawerClose, handleRefresh: refresh,
   }
 }
 ```
@@ -616,10 +782,10 @@ export function useXxxPage() {
 ### 第四步：实现页面 Hook
 
 - [ ] 查询参数状态
-- [ ] 表格状态（dataList, total, loading, pagination）
+- [ ] 表格状态（优先由 `useTableList` / 项目已有列表 Hook 管理：dataList, total, loading, pagination）
 - [ ] 选中行状态（selectedRowKeys, single, multiple）
 - [ ] 抽屉状态（drawerOpen, editId）
-- [ ] 数据获取函数（doFetch + useEffect）
+- [ ] 数据获取函数（列表页使用统一 Hook；弹窗/抽屉打开加载优先用 `afterOpenChange`）
 - [ ] 所有业务动作（搜索、重置、删除、状态切换等）
 
 ### 第五步：实现子组件
@@ -642,6 +808,8 @@ pnpm tsc --noEmit
 pnpm lint
 pnpm build
 ```
+
+验证时必须确认业务代码没有 `// eslint-disable-line react-hooks/set-state-in-effect`、`// eslint-disable-next-line react-hooks/set-state-in-effect`、`// eslint-disable-line react-hooks/exhaustive-deps`、`// eslint-disable-next-line react-hooks/exhaustive-deps`。如果 lint 报 hooks 依赖或 effect 中同步 setState，应回到实现中调整依赖、`useTableList`、`useCallback`、事件回调或派生状态，而不是加禁用注释。
 
 ## 10. 常见陷阱
 
@@ -672,6 +840,10 @@ Drawer 内部通过 `afterOpenChange` 加载数据，页面层不需要再调用
 ### 10.7 Modal destroyOnClose 已废弃
 
 使用 `destroyOnHidden`。
+
+### 10.8 不要用 eslint-disable-line 绕过 hooks 规则
+
+遇到 `react-hooks/set-state-in-effect` 或 `react-hooks/exhaustive-deps` 时，必须修改代码结构。典型做法是列表页接入 `useTableList`、补全依赖、把函数改成 `useCallback`、把弹窗打开初始化迁移到 `afterOpenChange`，或把可派生 state 改为计算值。不要生成 `// eslint-disable-line react-hooks/set-state-in-effect`、`// eslint-disable-next-line react-hooks/set-state-in-effect`、`// eslint-disable-line react-hooks/exhaustive-deps` 或 `// eslint-disable-next-line react-hooks/exhaustive-deps`。
 
 ## 11. 组件对照表
 

@@ -1,12 +1,13 @@
-import {useCallback, useEffect, useRef, useState} from 'react'
+import {useCallback, useState} from 'react'
 import {Button, Card, Form, Input, message, Modal, Space, Tag} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
 import {ArrowLeftOutlined, PlusOutlined} from '@ant-design/icons'
 import {useNavigate, useSearch} from '@tanstack/react-router'
 import AuthButton from '@/components/AuthButton'
 import BaseListPage from '@/components/BaseListPage'
+import {useTableList} from '@/hooks/useTableList'
 import {delData, exportData, listData} from '@/api/system/dict/data'
-import type {DictDataListClass, DictDataVO} from '@/api/system/dict/data/types'
+import type {DictDataListClass, DictDataQuery, DictDataVO} from '@/api/system/dict/data/types'
 import {useDictStore} from '@/store/useDictStore'
 import {useTagsViewStore} from '@/store/useTagsViewStore'
 import DictDataDrawer from './components/DictDataDrawer'
@@ -21,64 +22,51 @@ const LIST_CLASS_COLOR: Record<DictDataListClass, string> = {
 	danger: 'red',
 }
 
+type DictDataSearchForm = {
+	dictLabel?: string
+}
+
+type DictDataListParams = Omit<DictDataQuery, 'pageNum' | 'pageSize'>
+
 export default function DictDataPage() {
 	const navigate = useNavigate()
 	const search = useSearch({strict: false}) as Record<string, string | undefined>
 	const dictType = search.dictType ?? ''
 	const dictName = search.dictName ?? ''
 	
-	const [form] = Form.useForm()
-	const [dataList, setDataList] = useState<DictDataVO[]>([])
-	const [total, setTotal] = useState(0)
-	const [loading, setLoading] = useState(true)
-	const [pageNum, setPageNum] = useState(1)
-	const [pageSize, setPageSize] = useState(10)
+	const [form] = Form.useForm<DictDataSearchForm>()
 	const [selectedRowKeys, setSelectedRowKeys] = useState<Array<number | string>>([])
 	const [drawerOpen, setDrawerOpen] = useState(false)
 	const [editDictCode, setEditDictCode] = useState<number | string | undefined>()
 	const removeDict = useDictStore((state) => state.removeDict)
-	const cancelledRef = useRef(false)
-	
-	const doFetch = useCallback(async (page: number, size: number, dictLabel?: string) => {
-		try {
-			const res = await listData({
-				dictType,
-				dictLabel: dictLabel ?? form.getFieldValue('dictLabel') ?? '',
-				pageNum: page,
-				pageSize: size,
-			})
-			
-			if (cancelledRef.current) return
-			
-			setDataList(res.rows ?? [])
-			setTotal(res.total ?? 0)
-		} finally {
-			if (!cancelledRef.current) {
-				setLoading(false)
-			}
+
+	const buildQueryParams = useCallback((formValues: DictDataSearchForm): DictDataListParams => ({
+		dictType,
+		dictLabel: formValues.dictLabel ?? '',
+	}), [dictType])
+
+	const {
+		dataList,
+		total,
+		loading,
+		pageNum,
+		pageSize,
+		search: handleSearch,
+		reset: handleReset,
+		refresh,
+		changePage,
+	} = useTableList<DictDataVO, DictDataSearchForm, DictDataListParams>({
+		form,
+		request: listData,
+		buildParams: buildQueryParams,
+		reloadKey: dictType,
+	})
+
+	const refreshAndDropCache = () => {
+		if (dictType) {
+			removeDict(dictType)
 		}
-	}, [dictType, form])
-	
-	useEffect(() => {
-		cancelledRef.current = false
-		void doFetch(1, pageSize, '')
-		
-		return () => {
-			cancelledRef.current = true
-		}
-	}, [dictType, pageSize, doFetch])
-	
-	const handleSearch = () => {
-		setPageNum(1)
-		setLoading(true)
-		void doFetch(1, pageSize)
-	}
-	
-	const handleReset = () => {
-		form.resetFields()
-		setPageNum(1)
-		setLoading(true)
-		void doFetch(1, pageSize, '')
+		refresh()
 	}
 	
 	const handleDelete = (dictCode: number | string) => {
@@ -88,9 +76,7 @@ export default function DictDataPage() {
 			onOk: async () => {
 				await delData(dictCode)
 				message.success('删除成功')
-				removeDict(dictType)
-				setLoading(true)
-				void doFetch(pageNum, pageSize)
+				refreshAndDropCache()
 			},
 		})
 	}
@@ -105,19 +91,15 @@ export default function DictDataPage() {
 			onOk: async () => {
 				await delData(selectedRowKeys)
 				message.success('删除成功')
-				removeDict(dictType)
 				setSelectedRowKeys([])
-				setLoading(true)
-				void doFetch(pageNum, pageSize)
+				refreshAndDropCache()
 			},
 		})
 	}
 	
 	const handleExport = () => {
-		void exportData({
-			dictType,
-			dictLabel: '',
-		})
+		const formValues = form.getFieldsValue()
+		void exportData(buildQueryParams(formValues))
 	}
 	
 	const handleAdd = () => {
@@ -138,8 +120,7 @@ export default function DictDataPage() {
 	const handleDrawerSuccess = () => {
 		setDrawerOpen(false)
 		setEditDictCode(undefined)
-		setLoading(true)
-		void doFetch(pageNum, pageSize)
+		refreshAndDropCache()
 	}
 	
 	const removeTag = useTagsViewStore((state) => state.removeView)
@@ -158,8 +139,8 @@ export default function DictDataPage() {
 			</Form.Item>
 			<Form.Item>
 				<Space>
-					<Button type="primary" onClick={handleSearch}>搜索</Button>
-					<Button onClick={handleReset}>重置</Button>
+					<Button type="primary" onClick={() => handleSearch()}>搜索</Button>
+					<Button onClick={() => handleReset()}>重置</Button>
 				</Space>
 			</Form.Item>
 		</Form>
@@ -201,15 +182,16 @@ export default function DictDataPage() {
 			key: 'action',
 			width: 120,
 			render: (_, record) => {
-				if (record.dictCode === undefined) return null
+				const dictCode = record.dictCode
+				if (dictCode === undefined) return null
 				return (
 					<Space size="small">
 						<AuthButton type="link" size="small" permission="system:dict:edit"
-						            onClick={() => handleEdit(record.dictCode!)}>
+						            onClick={() => handleEdit(dictCode)}>
 							修改
 						</AuthButton>
 						<AuthButton type="link" size="small" danger permission="system:dict:remove"
-						            onClick={() => handleDelete(record.dictCode!)}>
+						            onClick={() => handleDelete(dictCode)}>
 							删除
 						</AuthButton>
 					</Space>
@@ -239,12 +221,7 @@ export default function DictDataPage() {
 					total,
 					showSizeChanger: true,
 					showTotal: (t) => `共 ${t} 条`,
-					onChange: (page, size) => {
-						setPageNum(page)
-						setPageSize(size)
-						setLoading(true)
-						void doFetch(page, size)
-					},
+					onChange: changePage,
 				}}
 				rowSelection={{
 					selectedRowKeys,
@@ -252,10 +229,7 @@ export default function DictDataPage() {
 				}}
 				queryNode={queryNode}
 				toolbarLeft={toolbarLeft}
-				onRefresh={() => {
-					setLoading(true);
-					void doFetch(pageNum, pageSize)
-				}}
+				onRefresh={refresh}
 				storageKey="system-dict-data-columns"
 			/>
 			
