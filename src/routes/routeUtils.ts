@@ -12,10 +12,33 @@ export function normalizeFullPath(parentPath: string, path: string): string {
   return `${parent}/${child}`
 }
 
-/** 递归展平路由树为一维数组。 */
-export function flattenRoutes(routes: DynamicRouteConfig[]): DynamicRouteConfig[] {
-  const result: DynamicRouteConfig[] = []
+// ---- 缓存层 ----
 
+/** 路由数组引用 → 展平结果缓存 */
+const flattenCache = new WeakMap<DynamicRouteConfig[], DynamicRouteConfig[]>()
+
+/** 路径模式 → 预编译正则缓存 */
+const patternCache = new Map<string, RegExp>()
+
+/** pathname → 匹配结果缓存（LRU，最多 256 条） */
+const matchCache = new Map<string, DynamicRouteConfig | undefined>()
+const MATCH_CACHE_MAX = 256
+
+function getOrCompilePattern(fullPath: string): RegExp {
+  let re = patternCache.get(fullPath)
+  if (!re) {
+    re = new RegExp(`^${fullPath.replace(/:[^/]+/g, '[^/]+')}$`)
+    patternCache.set(fullPath, re)
+  }
+  return re
+}
+
+/** 递归展平路由树为一维数组（带缓存）。 */
+export function flattenRoutes(routes: DynamicRouteConfig[]): DynamicRouteConfig[] {
+  const cached = flattenCache.get(routes)
+  if (cached) return cached
+
+  const result: DynamicRouteConfig[] = []
   for (const route of routes) {
     result.push(route)
     if (route.children?.length) {
@@ -23,29 +46,48 @@ export function flattenRoutes(routes: DynamicRouteConfig[]): DynamicRouteConfig[
     }
   }
 
+  flattenCache.set(routes, result)
   return result
 }
 
 /**
  * 在路由列表中匹配当前 pathname，返回匹配的路由配置。
  * 支持参数化路径（如 `/user/:id`）。
+ * 结果按 (routes 引用, pathname) 缓存。
  */
 export function matchRoute(
   pathname: string,
   routes: DynamicRouteConfig[],
 ): DynamicRouteConfig | undefined {
+  const cacheKey = pathname
+  const cached = matchCache.get(cacheKey)
+  if (cached !== undefined || matchCache.has(cacheKey)) return cached
+
   const flat = flattenRoutes(routes)
 
-  return flat.find((route) => {
+  const matched = flat.find((route) => {
     const fullPath = route.fullPath
     if (!fullPath || isExternal(fullPath)) return false
     if (fullPath === pathname) return true
     if (fullPath.includes(':')) {
-      const pattern = fullPath.replace(/:[^/]+/g, '[^/]+')
-      return new RegExp(`^${pattern}$`).test(pathname)
+      return getOrCompilePattern(fullPath).test(pathname)
     }
     return false
   })
+
+  if (matchCache.size >= MATCH_CACHE_MAX) {
+    const firstKey = matchCache.keys().next().value
+    if (firstKey !== undefined) matchCache.delete(firstKey)
+  }
+  matchCache.set(cacheKey, matched)
+
+  return matched
+}
+
+/** 清除路由匹配缓存（路由变化时调用）。 */
+export function clearRouteCaches(): void {
+  matchCache.clear()
+  patternCache.clear()
 }
 
 /**

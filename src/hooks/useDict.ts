@@ -1,28 +1,34 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import { useDictStore, type DictOption } from '@/store/useDictStore'
 
 type DictResult<T extends string> = Record<T, DictOption[]>
 
+/**
+ * 订阅字典数据。
+ *
+ * 优化点：只订阅指定 dictType 的数据，避免其他字典变化触发重渲染。
+ */
 export function useDict<T extends string>(...dictTypes: T[]): DictResult<T> {
-  const cache = useDictStore((state) => state.cache)
   const loadDict = useDictStore((state) => state.loadDict)
 
-  const dictTypeKey = dictTypes.join('|')
-
+  // 触发加载（只在首次缺少时）
   useEffect(() => {
-    const types = dictTypeKey.split('|') as T[]
-    types.forEach((dictType) => {
-      if (!cache.get(dictType)) {
+    const store = useDictStore.getState()
+    dictTypes.forEach((dictType) => {
+      if (!store.getDict(dictType)) {
         void loadDict(dictType)
       }
     })
-  }, [cache, loadDict, dictTypeKey])
+    // loadDict 是稳定引用，不需要加入依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, dictTypes)
 
-  return useMemo(() => {
-    const types = dictTypeKey.split('|') as T[]
-    return types.reduce((result, dictType) => {
-      result[dictType] = cache.get(dictType) ?? []
-      return result
-    }, {} as DictResult<T>)
-  }, [cache, dictTypeKey])
+  // 只订阅指定 dictType 的缓存值
+  return useDictStore((state) => {
+    const partial = {} as DictResult<T>
+    for (const dictType of dictTypes) {
+      partial[dictType] = state.cache.get(dictType) ?? []
+    }
+    return partial
+  })
 }

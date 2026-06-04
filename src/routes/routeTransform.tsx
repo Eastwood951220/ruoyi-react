@@ -22,8 +22,20 @@ const pageLoadingFallback = (
 
 const notFoundFallback = <div>页面不存在</div>
 
-function lazyElement(importer: () => Promise<{ default: React.ComponentType }>) {
-  const Component = lazy(importer)
+/** 缓存已创建的 lazy 组件，避免 Router 重建时重复创建 */
+const lazyComponentCache = new Map<string, React.LazyExoticComponent<React.ComponentType>>()
+
+function getOrCreateLazy(importer: () => Promise<{ default: React.ComponentType }>, cacheKey: string) {
+  let cached = lazyComponentCache.get(cacheKey)
+  if (!cached) {
+    cached = lazy(importer)
+    lazyComponentCache.set(cacheKey, cached)
+  }
+  return cached
+}
+
+function lazyElement(importer: () => Promise<{ default: React.ComponentType }>, cacheKey: string) {
+  const Component = getOrCreateLazy(importer, cacheKey)
 
   return (
     <Suspense fallback={pageLoadingFallback}>
@@ -46,10 +58,10 @@ function loadRouteElement(component?: string): React.ReactNode {
   if (!importer) {
     console.warn(`[dynamic-route] component not found: ${component}, expected: ${modulePath}`)
     const fallback = featureModules['/src/features/error/NotFoundPage.tsx'] as (() => Promise<{ default: React.ComponentType }>) | undefined
-    return fallback ? lazyElement(fallback) : notFoundFallback
+    return fallback ? lazyElement(fallback, '__NotFoundPage__') : notFoundFallback
   }
 
-  return lazyElement(importer)
+  return lazyElement(importer, modulePath)
 }
 
 /**

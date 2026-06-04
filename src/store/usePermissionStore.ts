@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { getRouters } from '@/api/system/menu'
 import { buildDynamicRouteConfigs } from '@/routes/routeTransform'
-import { toMenuRoutes } from '@/routes/routeUtils'
+import { toMenuRoutes, clearRouteCaches } from '@/routes/routeUtils'
 import type { DynamicRouteConfig, MenuRouteItem } from '@/routes/types'
 
 type PermissionState = {
@@ -23,6 +23,7 @@ export const usePermissionStore = create<PermissionState>()(
       loadRoutes: async () => {
         const response = await getRouters()
         const rawRoutes = response.data ?? []
+        clearRouteCaches()
         const dynamicRoutes = buildDynamicRouteConfigs(rawRoutes)
         const menuRoutes = toMenuRoutes(dynamicRoutes)
 
