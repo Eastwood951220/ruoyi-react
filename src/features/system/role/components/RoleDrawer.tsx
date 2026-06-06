@@ -1,10 +1,11 @@
 import { useCallback, useRef, useState } from 'react'
-import { Checkbox, Col, Form, Input, InputNumber, message, Radio, Row, Tree } from 'antd'
+import { Checkbox, Col, Form, Input, InputNumber, message, Radio, Row } from 'antd'
 import type { DataNode } from 'antd/es/tree'
 import BaseDrawer from '@/components/BaseDrawer'
 import { getRole, addRole, updateRole, roleMenuTreeselect, menuTreeselect } from '@/api/system/role'
 import type { RoleForm, MenuTreeOption } from '@/api/system/role/types'
 import type { DictOption } from '@/store/useDictStore'
+import VirtualCheckTree from './VirtualCheckTree'
 
 interface RoleDrawerProps {
   open: boolean
@@ -115,18 +116,10 @@ export default function RoleDrawer(props: RoleDrawerProps) {
     }
   }
 
-  const onCheck = (
-    checked: React.Key[] | { checked: React.Key[]; halfChecked: React.Key[] },
-    info: { halfCheckedKeys?: React.Key[] },
-  ) => {
-    if (Array.isArray(checked)) {
-      setCheckedKeys(checked)
-      setHalfCheckedKeys(info.halfCheckedKeys ?? [])
-    } else {
-      setCheckedKeys(checked.checked)
-      setHalfCheckedKeys(checked.halfChecked)
-    }
-  }
+  const handleTreeCheck = useCallback((newChecked: React.Key[], newHalf: React.Key[]) => {
+    setCheckedKeys(newChecked)
+    setHalfCheckedKeys(newHalf)
+  }, [])
 
   const rules = {
     roleName: [{ required: true, message: '角色名称不能为空', trigger: 'blur' }],
@@ -183,16 +176,14 @@ export default function RoleDrawer(props: RoleDrawerProps) {
                   父子联动
                 </Checkbox>
               </div>
-              <div style={{ border: '1px solid #d9d9d9', borderRadius: 6, padding: 8, maxHeight: 300, overflow: 'auto' }}>
-                <Tree
-                  checkable
-                  checkStrictly={!menuCheckStrictly}
-                  treeData={menuTreeData}
-                  checkedKeys={checkedKeys}
-                  onCheck={onCheck}
-                  defaultExpandAll
-                />
-              </div>
+              <VirtualCheckTree
+                treeData={menuTreeData}
+                checkedKeys={checkedKeys}
+                halfCheckedKeys={halfCheckedKeys}
+                checkStrictly={!menuCheckStrictly}
+                height={300}
+                onCheck={handleTreeCheck}
+              />
             </Form.Item>
           </Col>
           <Col span={24}>
