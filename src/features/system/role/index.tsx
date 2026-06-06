@@ -17,7 +17,7 @@ import {
 } from '@/api/system/role'
 import type { RoleQuery, RoleVO } from '@/api/system/role/types'
 import RoleDrawer from './components/RoleDrawer'
-import DataScopeDrawer from './components/DataScopeDrawer'
+import DataScopeModal from './components/DataScopeModal'
 import styles from './index.module.less'
 
 const { RangePicker } = DatePicker
@@ -121,7 +121,7 @@ export default function RolePage() {
   const handleDataScopeSuccess = () => { setDataScopeOpen(false); setDataScopeRoleId(undefined) }
 
   const handleAuthUser = (row: RoleVO) => {
-    void navigate({ to: '/system/role-auth/user/$roleId', params: { roleId: String(row.roleId) } })
+    void navigate({ to: '/system/role-auth/$roleId', params: { roleId: String(row.roleId) } })
   }
 
   const single = selectedRowKeys.length !== 1
@@ -222,7 +222,7 @@ export default function RolePage() {
         onSuccess={handleDrawerSuccess}
       />
 
-      <DataScopeDrawer
+      <DataScopeModal
         open={dataScopeOpen}
         roleId={dataScopeRoleId}
         onClose={handleDataScopeClose}
