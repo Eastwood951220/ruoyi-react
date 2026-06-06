@@ -65,7 +65,7 @@ export default function AuthUserPage() {
 
   const requireRoleId = () => {
     if (!roleId) {
-      message.warning('缺少角色编号')
+      void message.warning('缺少角色编号')
       return undefined
     }
     return roleId

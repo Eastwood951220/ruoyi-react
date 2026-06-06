@@ -18,7 +18,8 @@ index.module.less            -- Page styles
 authUser.tsx                 -- Auth user sub-page (route: /system/role-auth/user/$roleId)
 components/
   RoleDrawer.tsx             -- Add/edit role drawer
-  DataScopeDrawer.tsx        -- Data scope assignment drawer
+  DataScopeModal.tsx         -- Data scope assignment modal
+  VirtualCheckTree.tsx       -- Reusable virtual tree with checkable support
   SelectUserModal.tsx        -- Select user for role assignment modal
 ```
 
