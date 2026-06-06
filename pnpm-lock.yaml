@@ -56,6 +56,9 @@ importers:
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
+      rc-tree:
+        specifier: ^5.13.1
+        version: 5.13.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react:
         specifier: ^19.2.6
         version: 19.2.6
@@ -984,6 +987,9 @@ packages:
   caniuse-lite@1.0.30001793:
     resolution: {integrity: sha512-iwSsYWaCOoh26cV8NwNRViHlrfUvYsHDfRVcbtmw0Kg6PJIZZXwMkj1442FYLBGkeUf1juAsU3DTfxW579mrPA==}
 
+  classnames@2.5.1:
+    resolution: {integrity: sha512-saHYOzhIQs6wy2sVxTM6bUDsQO4F50V9RQ22qBpEdCW+I+/Wmke2HOl6lS6dTpdxVhb88/I6+Hs+438c3lfUow==}
+
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
     engines: {node: '>=6'}
@@ -1607,6 +1613,38 @@ packages:
   quansync@0.2.11:
     resolution: {integrity: sha512-AifT7QEbW9Nri4tAwR5M/uzpBuqfZf+zwaEM/QkzEjj7NBuFD2rBuy0K3dE+8wltbezDV7JMA0WfnCPYRSYbXA==}
 
+  rc-motion@2.9.5:
+    resolution: {integrity: sha512-w+XTUrfh7ArbYEd2582uDrEhmBHwK1ZENJiSJVb7uRxdE7qJSYjbO2eksRXmndqyKqKoYPc9ClpPh5242mV1vA==}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  rc-resize-observer@1.4.3:
+    resolution: {integrity: sha512-YZLjUbyIWox8E9i9C3Tm7ia+W7euPItNWSPX5sCcQTYbnwDb5uNpnLHQCG1f22oZWUhLw4Mv2tFmeWe68CDQRQ==}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  rc-tree@5.13.1:
+    resolution: {integrity: sha512-FNhIefhftobCdUJshO7M8uZTA9F4OPGVXqGfZkkD/5soDeOhwO06T/aKTrg0WD8gRg/pyfq+ql3aMymLHCTC4A==}
+    engines: {node: '>=10.x'}
+    peerDependencies:
+      react: '*'
+      react-dom: '*'
+
+  rc-util@5.44.4:
+    resolution: {integrity: sha512-resueRJzmHG9Q6rI/DfK6Kdv9/Lfls05vzMs1Sk3M2P+3cJa+MakaZyWY8IPfehVuhPJFKrIY1IK4GqbiaiY5w==}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
+  rc-virtual-list@3.19.2:
+    resolution: {integrity: sha512-Ys6NcjwGkuwkeaWBDqfI3xWuZ7rDiQXlH1o2zLfFzATfEgXcqpk8CkgMfbJD81McqjcJVez25a3kPxCR807evA==}
+    engines: {node: '>=8.x'}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+
   react-dom@19.2.6:
     resolution: {integrity: sha512-0prMI+hvBbPjsWnxDLxlCGyM8PN6UuWjEUCYmZhO67xIV9Xasa/r/vDnq+Xyq4Lo27g8QSbO5YzARu0D1Sps3g==}
     peerDependencies:
@@ -1618,6 +1656,9 @@ packages:
   react@19.2.6:
     resolution: {integrity: sha512-sfWGGfavi0xr8Pg0sVsyHMAOziVYKgPLNrS7ig+ivMNb3wbCBw3KxtflsGBAwD3gYQlE/AEZsTLgToRrSCjb0Q==}
     engines: {node: '>=0.10.0'}
+
+  resize-observer-polyfill@1.5.1:
+    resolution: {integrity: sha512-LwZrotdHOo12nQuZlHEmtuXdqGoOD0OhaxopaNFxWzInpEgaLWoVuAMbTzixuosCx2nEG58ngzW3vxdWoxIgdg==}
 
   rimraf@5.0.5:
     resolution: {integrity: sha512-CqDakW+hMe/Bz202FPEymy68P+G50RfMQK+Qo5YUqc9SPipvbGjCGKd0RSKEelbsfQuw3g5NZDSrlZZAJurH1A==}
@@ -2876,6 +2917,8 @@ snapshots:
 
   caniuse-lite@1.0.30001793: {}
 
+  classnames@2.5.1: {}
+
   clsx@2.1.1: {}
 
   color-convert@2.0.1:
@@ -3436,6 +3479,49 @@ snapshots:
 
   quansync@0.2.11: {}
 
+  rc-motion@2.9.5(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      '@babel/runtime': 7.29.7
+      classnames: 2.5.1
+      rc-util: 5.44.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
+  rc-resize-observer@1.4.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      '@babel/runtime': 7.29.7
+      classnames: 2.5.1
+      rc-util: 5.44.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+      resize-observer-polyfill: 1.5.1
+
+  rc-tree@5.13.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      '@babel/runtime': 7.29.7
+      classnames: 2.5.1
+      rc-motion: 2.9.5(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      rc-util: 5.44.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      rc-virtual-list: 3.19.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
+  rc-util@5.44.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      '@babel/runtime': 7.29.7
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+      react-is: 18.2.0
+
+  rc-virtual-list@3.19.2(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      '@babel/runtime': 7.29.7
+      classnames: 2.5.1
+      rc-resize-observer: 1.4.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      rc-util: 5.44.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
   react-dom@19.2.6(react@19.2.6):
     dependencies:
       react: 19.2.6
@@ -3444,6 +3530,8 @@ snapshots:
   react-is@18.2.0: {}
 
   react@19.2.6: {}
+
+  resize-observer-polyfill@1.5.1: {}
 
   rimraf@5.0.5:
     dependencies:
