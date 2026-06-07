@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot, type Root as ReactRoot } from 'react-dom/client'
+import './styles/tailwind.css'
 import 'antd/dist/reset.css'
 import dayjs from 'dayjs'
 import 'dayjs/locale/zh-cn'

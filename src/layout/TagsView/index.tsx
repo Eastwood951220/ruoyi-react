@@ -20,9 +20,8 @@ type ContextMenuState = {
 
 export function TagsView({darkMode}: TagsViewProps) {
 	const navigate = useNavigate()
-	const routerState = useRouterState()
-	const pathname = routerState.location.pathname
-	const searchStr = routerState.location.searchStr ?? ''
+	const pathname = useRouterState({select: (state) => state.location.pathname})
+	const searchStr = useRouterState({select: (state) => state.location.searchStr ?? ''})
 	const searchParams = useMemo(() => new URLSearchParams(searchStr), [searchStr])
 	
 	const visitedViews = useTagsViewStore((state) => state.visitedViews)

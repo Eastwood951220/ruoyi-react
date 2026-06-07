@@ -9,6 +9,12 @@ lerna-debug.log*
 
 node_modules
 dist
+.agents
+.ccg
+.claude
+.codex
+graphify-out
+docs
 dist-ssr
 *.local
 
@@ -23,8 +29,3 @@ dist-ssr
 *.sln
 *.sw?
 
-.agents
-.ccg
-.claude
-.codex
-graphify-out

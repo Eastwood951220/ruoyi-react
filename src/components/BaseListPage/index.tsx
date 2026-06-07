@@ -29,6 +29,34 @@ function getColumnTitle(column: ColumnsType<object>[number]): string {
   return '未知列'
 }
 
+function getColumnsSignature(columns: ColumnsType<object>): string {
+  return columns
+    .map((column, index) => {
+      const key = getColumnKey(column, index)
+      const title = getColumnTitle(column)
+      return `${index}:${key}:${title}`
+    })
+    .join('|')
+}
+
+function isSameColumnSettings(
+  current: ColumnSettingItem[],
+  next: ColumnSettingItem[],
+): boolean {
+  if (current.length !== next.length) return false
+  return current.every((item, index) => {
+    const nextItem = next[index]
+    return (
+      nextItem != null
+      && item.key === nextItem.key
+      && item.title === nextItem.title
+      && item.visible === nextItem.visible
+      && item.order === nextItem.order
+      && item.disabled === nextItem.disabled
+    )
+  })
+}
+
 function readStoredSettings(storageKey: string): ColumnSettingItem[] | null {
   try {
     const raw = localStorage.getItem(storageKey)
@@ -107,7 +135,8 @@ function useElementHeight<T extends HTMLElement>() {
     const resizeObserver = new ResizeObserver((entries) => {
       const entry = entries[0]
       if (entry) {
-        setHeight(entry.contentRect.height)
+        const nextHeight = Math.round(entry.contentRect.height)
+        setHeight((prev) => (prev === nextHeight ? prev : nextHeight))
       }
     })
 
@@ -137,6 +166,9 @@ export default function BaseListPage<T extends object>(props: BaseListPageProps<
     storageKey,
   } = props
 
+  const columnsSignature = getColumnsSignature(columns as ColumnsType<object>)
+  const latestColumnsRef = useRef<ColumnsType<object>>(columns as ColumnsType<object>)
+
   // ---- 查询区域显示/隐藏 ----
   const [queryVisible, setQueryVisible] = useState(queryVisibleDefault)
 
@@ -147,14 +179,26 @@ export default function BaseListPage<T extends object>(props: BaseListPageProps<
 
   const [settingOpen, setSettingOpen] = useState(false)
 
-  // 列变化时重新合并
-  const prevColumnsRef = useRef(columns)
   useEffect(() => {
-    if (prevColumnsRef.current === columns) return
-    prevColumnsRef.current = columns
+    latestColumnsRef.current = columns as ColumnsType<object>
+  }, [columns])
+
+  // 列变化时重新合并
+  const settingsSourceRef = useRef({ columnsSignature, storageKey })
+  useEffect(() => {
+    if (
+      settingsSourceRef.current.columnsSignature === columnsSignature
+      && settingsSourceRef.current.storageKey === storageKey
+    ) {
+      return
+    }
+    settingsSourceRef.current = { columnsSignature, storageKey }
     const stored = storageKey ? readStoredSettings(storageKey) : null
-    setColumnSettings(mergeSettings(columns as ColumnsType<object>, stored))
-  }, [columns, storageKey])
+    const nextSettings = mergeSettings(latestColumnsRef.current, stored)
+    setColumnSettings((prev) => (
+      isSameColumnSettings(prev, nextSettings) ? prev : nextSettings
+    ))
+  }, [columnsSignature, storageKey])
 
   const handleToggleVisible = useCallback((key: string) => {
     setColumnSettings((prev) => {
@@ -178,10 +222,10 @@ export default function BaseListPage<T extends object>(props: BaseListPageProps<
   }, [storageKey])
 
   const handleResetColumns = useCallback(() => {
-    const defaults = mergeSettings(columns as ColumnsType<object>, null)
+    const defaults = mergeSettings(latestColumnsRef.current, null)
     setColumnSettings(defaults)
     if (storageKey) writeStoredSettings(storageKey, defaults)
-  }, [columns, storageKey])
+  }, [storageKey])
 
   // 根据 columnSettings 过滤和排序列
   const visibleColumns = useMemo(() => {

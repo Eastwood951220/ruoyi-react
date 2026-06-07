@@ -1,6 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "allowUmdGlobalAccess": true,
     "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     // https://vite.dev/config/build-options.html#build-target

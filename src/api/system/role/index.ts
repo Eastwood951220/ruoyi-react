@@ -40,12 +40,12 @@ export function dataScope(data: RoleForm) {
 
 /** 获取角色部门树 */
 export function deptTreeSelect(roleId: number | string) {
-  return request.get<RoleDeptTree>(`/system/role/deptTree/${roleId}`)
+  return request.get<ApiResponse<RoleDeptTree>>(`/system/role/deptTree/${roleId}`)
 }
 
 /** 获取角色菜单树 */
 export function roleMenuTreeselect(roleId: number | string) {
-  return request.get<RoleMenuTree>(`/system/menu/roleMenuTreeselect/${roleId}`)
+  return request.get<ApiResponse<RoleMenuTree>>(`/system/menu/roleMenuTreeselect/${roleId}`)
 }
 
 /** 获取菜单树 */

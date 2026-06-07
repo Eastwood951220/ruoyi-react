@@ -4,7 +4,7 @@ import type { AnyRoute } from '@tanstack/react-router'
 import { AppLayout } from '@/layout/AppLayout'
 import { ParentView } from '@/layout/ParentView'
 import type { DynamicRouteConfig } from './types'
-import { isExternal, normalizeFullPath } from './routeUtils'
+import { convertRoutePath, isExternal, normalizeFullPath } from './routeUtils'
 import type { RouterVo } from '@/api/system/menu/types'
 
 const featureModules = import.meta.glob('/src/features/**/*.tsx')
@@ -73,11 +73,12 @@ export function buildDynamicRouteConfigs(
   parentFullPath = '',
 ): DynamicRouteConfig[] {
   return routes.map((route) => {
-    const fullPath = normalizeFullPath(parentFullPath, route.path)
+    const rawFullPath = normalizeFullPath(parentFullPath, route.path)
+    const fullPath = convertRoutePath(rawFullPath)
 
     const config: DynamicRouteConfig = {
       id: route.name || route.path,
-      path: route.path,
+      path: convertRoutePath(route.path),
       fullPath,
       component: route.component,
       meta: {

@@ -17,7 +17,7 @@ import {
 } from '@/api/system/role'
 import type { RoleQuery, RoleVO } from '@/api/system/role/types'
 import RoleDrawer from './components/RoleDrawer'
-import DataScopeModal from './components/DataScopeModal'
+import DataScopeDrawer from './components/DataScopeDrawer'
 import styles from './index.module.less'
 
 const { RangePicker } = DatePicker
@@ -222,7 +222,7 @@ export default function RolePage() {
         onSuccess={handleDrawerSuccess}
       />
 
-      <DataScopeModal
+      <DataScopeDrawer
         open={dataScopeOpen}
         roleId={dataScopeRoleId}
         onClose={handleDataScopeClose}

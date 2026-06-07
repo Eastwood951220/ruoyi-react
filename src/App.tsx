@@ -62,18 +62,12 @@ export function Root() {
   }, [isAuthenticated])
 
   // 动态路由就绪时构建完整路由树，否则使用静态路由
-  // 使用 JSON.stringify 比较避免数组引用变化导致的不必要重建
-  const routesKey = isAuthenticated && dynamicRoutes.length > 0
-    ? JSON.stringify(dynamicRoutes.map((r) => r.fullPath))
-    : ''
-
   const appRouter = useMemo(() => {
     if (isAuthenticated && dynamicRoutes.length > 0) {
       return createAppRouter(dynamicRoutes)
     }
     return staticRouter
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, routesKey])
+  }, [isAuthenticated, dynamicRoutes])
 
   return (
     <ConfigProvider

@@ -5,6 +5,11 @@ export function isExternal(path: string): boolean {
   return /^(https?:|mailto:|tel:)/.test(path)
 }
 
+/** 将后端 :paramName 格式转换为 TanStack Router $paramName 格式。 */
+export function convertRoutePath(path: string): string {
+  return path.replace(/:([a-zA-Z_][a-zA-Z0-9_]*)/g, '$$$1')
+}
+
 /** 拼接父子路径，处理斜杠。 */
 export function normalizeFullPath(parentPath: string, path: string): string {
   const parent = parentPath.replace(/\/+$/, '')
@@ -27,7 +32,8 @@ const MATCH_CACHE_MAX = 256
 function getOrCompilePattern(fullPath: string): RegExp {
   let re = patternCache.get(fullPath)
   if (!re) {
-    re = new RegExp(`^${fullPath.replace(/:[^/]+/g, '[^/]+')}$`)
+    // 支持 :paramName 和 $paramName 两种动态参数格式
+    re = new RegExp(`^${fullPath.replace(/[:$][a-zA-Z_][a-zA-Z0-9_]*/g, '[^/]+')}$`)
     patternCache.set(fullPath, re)
   }
   return re
@@ -69,7 +75,7 @@ export function matchRoute(
     const fullPath = route.fullPath
     if (!fullPath || isExternal(fullPath)) return false
     if (fullPath === pathname) return true
-    if (fullPath.includes(':')) {
+    if (fullPath.includes(':') || fullPath.includes('$')) {
       return getOrCompilePattern(fullPath).test(pathname)
     }
     return false
