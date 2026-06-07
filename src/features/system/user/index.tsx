@@ -19,6 +19,7 @@ import { useUserPage } from './hooks/useUserPage'
 import DeptTreePanel from './components/DeptTreePanel'
 import UserDrawer from './components/UserDrawer'
 import UserImportModal from './components/UserImportModal'
+import AuthRoleModal from './components/AuthRoleModal'
 import styles from './index.module.less'
 
 const { RangePicker } = DatePicker
@@ -208,6 +209,9 @@ export default function UserPage() {
             <AuthButton type="link" size="small" permission="system:user:resetPwd" onClick={() => handleResetPwdClick(record)}>
               重置密码
             </AuthButton>
+            <AuthButton type="link" size="small" permission="system:user:edit" onClick={() => page.handleAuthRole(record)}>
+              分配角色
+            </AuthButton>
           </Space>
         )
       },
@@ -270,6 +274,13 @@ export default function UserPage() {
         onClose={() => page.setImportOpen(false)}
         onSuccess={page.handleImportSuccess}
         onDownloadTemplate={page.handleDownloadTemplate}
+      />
+
+      <AuthRoleModal
+        open={page.authRoleOpen}
+        userId={page.authRoleUserId}
+        onClose={page.handleAuthRoleClose}
+        onSuccess={page.handleRefresh}
       />
 
       <Modal

@@ -54,6 +54,10 @@ export function useUserPage() {
   // ---- 导入弹窗 ----
   const [importOpen, setImportOpen] = useState(false)
 
+  // ---- 分配角色 ----
+  const [authRoleOpen, setAuthRoleOpen] = useState(false)
+  const [authRoleUserId, setAuthRoleUserId] = useState<number | string | undefined>()
+
   // ---- 选项数据 ----
   const [initPassword, setInitPassword] = useState('')
 
@@ -258,6 +262,17 @@ export function useUserPage() {
     refresh()
   }
 
+  // ---- 分配角色 ----
+  const handleAuthRole = (row: UserVO) => {
+    setAuthRoleUserId(row.userId)
+    setAuthRoleOpen(true)
+  }
+
+  const handleAuthRoleClose = () => {
+    setAuthRoleOpen(false)
+    setAuthRoleUserId(undefined)
+  }
+
   return {
     // 查询参数
     form,
@@ -302,5 +317,10 @@ export function useUserPage() {
     handleImport,
     handleDownloadTemplate,
     handleRefresh,
+    // 分配角色
+    authRoleOpen,
+    authRoleUserId,
+    handleAuthRole,
+    handleAuthRoleClose,
   }
 }
