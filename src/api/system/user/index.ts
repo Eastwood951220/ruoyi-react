@@ -1,3 +1,4 @@
+import type { RoleVO } from '@/api/system/role/types'
 import request, { download, type ApiResponse } from '@/request'
 import type { UserData, UserForm, UserInfo, UserQuery, UserVO } from './types'
 
@@ -65,6 +66,16 @@ export function importTemplate() {
 /** 查询指定部门下的用户列表 */
 export function listUserByDeptId(deptId: number | string) {
   return request.get<ApiResponse<UserVO[]>>(`/system/user/list/dept/${deptId}`)
+}
+
+/** 获取用户授权角色 */
+export function getAuthRole(userId: number | string) {
+  return request.get<ApiResponse<{ user: UserVO; roles: RoleVO[] }>>(`/system/user/authRole/${userId}`)
+}
+
+/** 修改用户授权角色 */
+export function updateAuthRole(data: { userId: number | string; roleIds: string }) {
+  return request.put<ApiResponse<void>>('/system/user/authRole', data)
 }
 
 export type { LoginUser, UserInfo } from './types'
