@@ -72,7 +72,7 @@ export default function RoleDrawer(props: RoleDrawerProps) {
 				setLoading(true)
 				menuTreeselect()
 					.then((res) => {
-						setMenuTreeData(convertMenuTree(res?.data?.menus ?? []))
+						setMenuTreeData(convertMenuTree(res?.data ?? []))
 						setCheckedKeys([])
 					})
 					.finally(() => setLoading(false))
@@ -93,9 +93,7 @@ export default function RoleDrawer(props: RoleDrawerProps) {
 	
 	const handleConfirm = async () => {
 		if (loading) return
-		console.log("roleSort", form.getFieldValue("roleSort"))
 		const values = await form.validateFields()
-		console.log('values', values)
 		setSubmitting(true)
 		
 		try {
@@ -105,7 +103,6 @@ export default function RoleDrawer(props: RoleDrawerProps) {
 				menuIds: allMenuIds,
 				menuCheckStrictly,
 			}
-			console.log('submitData', submitData)
 			if (isEdit) {
 				await updateRole({...submitData, roleId})
 				message.success('修改成功')

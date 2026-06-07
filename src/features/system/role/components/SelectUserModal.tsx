@@ -75,7 +75,7 @@ export default function SelectUserModal(props: SelectUserModalProps) {
 		try {
 			await authUserSelectAll({
 				roleId,
-				userIds: selectedRowKeys.join(','),
+				userIds: selectedRowKeys,
 			})
 			message.success('分配成功')
 			onSuccess()

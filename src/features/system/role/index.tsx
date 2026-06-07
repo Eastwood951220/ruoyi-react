@@ -121,7 +121,7 @@ export default function RolePage() {
   const handleDataScopeSuccess = () => { setDataScopeOpen(false); setDataScopeRoleId(undefined) }
 
   const handleAuthUser = (row: RoleVO) => {
-    void navigate({ to: '/system/role-auth/$roleId', params: { roleId: String(row.roleId) } })
+    void navigate({ to: '/system/role-auth/user/$roleId', params: { roleId: String(row.roleId) } })
   }
 
   const single = selectedRowKeys.length !== 1
