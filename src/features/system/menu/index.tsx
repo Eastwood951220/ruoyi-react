@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
-import { Button, Form, Input, message, Modal, Space, Tree } from 'antd'
+import { useCallback, useMemo, useRef, useState, type Key } from 'react'
+import { Button, Form, Input, message, Modal, Space } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
 import BaseListPage from '@/components/BaseListPage'
@@ -8,13 +8,85 @@ import DictSelect from '@/components/DictSelect'
 import DictTag from '@/components/DictTag'
 import SvgIcon from '@/components/SvgIcon'
 import { useDict } from '@/hooks/useDict'
-import { cascadeDelMenu, delMenu, listMenu } from '@/api/system/menu'
+import { delMenu, listMenu } from '@/api/system/menu'
 import type { MenuVO } from '@/api/system/menu/types'
 import MenuDrawer from './components/MenuDrawer'
+import CascadeDeleteModal from './components/CascadeDeleteModal'
 
 type MenuSearchForm = {
   menuName?: string
   status?: string
+}
+
+function flattenMenuList(menus: MenuVO[]): MenuVO[] {
+  const result: MenuVO[] = []
+
+  const walk = (nodes: MenuVO[]) => {
+    for (const node of nodes) {
+      result.push({ ...node, children: undefined })
+      if (node.children?.length) {
+        walk(node.children)
+      }
+    }
+  }
+
+  walk(menus)
+  return result
+}
+
+function buildMenuTree(list: MenuVO[]): MenuVO[] {
+  const flatList = flattenMenuList(list)
+  const menuIds = new Set(flatList.map((menu) => String(menu.menuId)))
+  const childrenMap = new Map<string, MenuVO[]>()
+
+  for (const menu of flatList) {
+    const parentKey = String(menu.parentId ?? 0)
+    const siblings = childrenMap.get(parentKey) ?? []
+    siblings.push(menu)
+    childrenMap.set(parentKey, siblings)
+  }
+
+  const buildNode = (menu: MenuVO): MenuVO => {
+    const children = (childrenMap.get(String(menu.menuId)) ?? []).map(buildNode)
+    return children.length > 0
+      ? { ...menu, children }
+      : { ...menu, children: undefined }
+  }
+
+  return flatList
+    .filter((menu) => {
+      const parentKey = String(menu.parentId ?? 0)
+      return parentKey === '0' || !menuIds.has(parentKey)
+    })
+    .map(buildNode)
+}
+
+function collectMenuIds(nodes: MenuVO[]): Array<number | string> {
+  const ids: Array<number | string> = []
+  for (const node of nodes) {
+    ids.push(node.menuId)
+    if (node.children?.length) {
+      ids.push(...collectMenuIds(node.children))
+    }
+  }
+  return ids
+}
+
+function buildCascadeTree(nodes: MenuVO[]) {
+  return nodes.map((menu) => {
+    const children = menu.children?.length ? buildCascadeTree(menu.children) : undefined
+    return {
+      key: menu.menuId,
+      title: menu.menuName,
+      children,
+    }
+  })
+}
+
+function toMenuKeys(keys: readonly Key[]): Array<number | string> {
+  return keys.filter((key): key is number | string => (
+    typeof key === 'number' || typeof key === 'string'
+  ))
 }
 
 export default function MenuPage() {
@@ -23,7 +95,7 @@ export default function MenuPage() {
   const [form] = Form.useForm<MenuSearchForm>()
   const [loading, setLoading] = useState(false)
   const [menuList, setMenuList] = useState<MenuVO[]>([])
-  const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([])
+  const [expandedRowKeys, setExpandedRowKeys] = useState<Array<number | string>>([])
 
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -32,15 +104,15 @@ export default function MenuPage() {
 
   // Cascade delete state
   const [cascadeOpen, setCascadeOpen] = useState(false)
-  const [cascadeCheckedKeys, setCascadeCheckedKeys] = useState<React.Key[]>([])
-  const [cascadeLoading, setCascadeLoading] = useState(false)
 
   const fetchList = useCallback(async (params?: MenuSearchForm) => {
     setLoading(true)
     try {
       const query = params ?? form.getFieldsValue()
       const res = await listMenu(query)
-      setMenuList(res.data ?? [])
+      const tree = buildMenuTree(res.data ?? [])
+      setMenuList(tree)
+      setExpandedRowKeys(collectMenuIds(tree))
     } finally {
       setLoading(false)
     }
@@ -90,48 +162,10 @@ export default function MenuPage() {
   }
 
   const handleCascadeDelete = () => {
-    setCascadeCheckedKeys([])
     setCascadeOpen(true)
   }
 
-  const handleCascadeConfirm = async () => {
-    if (cascadeCheckedKeys.length === 0) {
-      message.warning('请选择要删除的菜单')
-      return
-    }
-    setCascadeLoading(true)
-    try {
-      await cascadeDelMenu(cascadeCheckedKeys as Array<number | string>)
-      message.success('删除成功')
-      setCascadeOpen(false)
-      void fetchList()
-    } finally {
-      setCascadeLoading(false)
-    }
-  }
-
-  const cascadeTreeData = useMemo(() => {
-    // Build tree from flat list using parentId
-    const menuMap = new Map<number | string, MenuVO[]>()
-    for (const menu of menuList) {
-      const parentId = menu.parentId ?? 0
-      if (!menuMap.has(parentId)) {
-        menuMap.set(parentId, [])
-      }
-      menuMap.get(parentId)!.push(menu)
-    }
-
-    const buildTree = (parentId: number | string): { key: React.Key; title: string; children?: ReturnType<typeof buildTree> }[] => {
-      const children = menuMap.get(parentId) ?? []
-      return children.map((menu) => ({
-        key: menu.menuId,
-        title: menu.menuName,
-        children: menuMap.has(menu.menuId) ? buildTree(menu.menuId) : undefined,
-      }))
-    }
-
-    return buildTree(0)
-  }, [menuList])
+  const cascadeTreeData = useMemo(() => buildCascadeTree(menuList), [menuList])
 
   const handleDrawerClose = () => {
     setDrawerOpen(false)
@@ -253,7 +287,7 @@ export default function MenuPage() {
         storageKey="system-menu-columns"
         expandable={{
           expandedRowKeys,
-          onExpandedRowsChange: (keys) => setExpandedRowKeys(keys as React.Key[]),
+          onExpandedRowsChange: (keys) => setExpandedRowKeys(toMenuKeys(keys)),
         }}
       />
 
@@ -265,24 +299,15 @@ export default function MenuPage() {
         onSuccess={handleDrawerSuccess}
       />
 
-      <Modal
-        title="级联删除菜单"
+      <CascadeDeleteModal
         open={cascadeOpen}
-        width={600}
-        confirmLoading={cascadeLoading}
-        onCancel={() => setCascadeOpen(false)}
-        onOk={handleCascadeConfirm}
-        destroyOnHidden
-      >
-        <Tree
-          checkable
-          treeData={cascadeTreeData}
-          checkedKeys={cascadeCheckedKeys}
-          onCheck={(checked) => setCascadeCheckedKeys(checked as React.Key[])}
-          defaultExpandAll
-          style={{ maxHeight: 400, overflow: 'auto' }}
-        />
-      </Modal>
+        treeData={cascadeTreeData}
+        onClose={() => setCascadeOpen(false)}
+        onSuccess={() => {
+          setCascadeOpen(false)
+          void fetchList()
+        }}
+      />
     </>
   )
 }

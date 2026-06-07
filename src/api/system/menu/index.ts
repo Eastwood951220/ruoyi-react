@@ -16,7 +16,7 @@ export function getRouters(): Promise<ApiResponse<RouterVo[]>> {
 
 /** 查询菜单列表 */
 export function listMenu(query?: MenuQuery) {
-  return request.get<ApiResponse<MenuVO[]>>('/system/menu/list', { params: query })
+  return request.get<ApiResponse<MenuVO[]>>('/system/menu/list', query)
 }
 
 /** 查询菜单详细 */
