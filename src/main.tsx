@@ -1,3 +1,4 @@
+import 'virtual:svg-icons-register'
 import { StrictMode } from 'react'
 import { createRoot, type Root as ReactRoot } from 'react-dom/client'
 import './styles/tailwind.css'

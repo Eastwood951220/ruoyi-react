@@ -1,1 +1,9 @@
 @import "tailwindcss";
+
+.svg-icon {
+  width: 1em;
+  height: 1em;
+  position: relative;
+  fill: currentColor;
+  vertical-align: -2px;
+}
