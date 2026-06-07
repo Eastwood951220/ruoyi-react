@@ -12,6 +12,8 @@ export interface RoleVO {
   menuIds?: Array<number | string>
   deptIds?: Array<number | string>
   admin?: boolean
+  /** 是否已分配给当前用户（authRole 接口返回） */
+  flag?: boolean
 }
 
 export interface RoleForm {
