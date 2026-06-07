@@ -64,3 +64,63 @@ export interface RouterVo {
   /** 子路由列表。 */
   children?: RouterVo[]
 }
+
+/** 菜单类型枚举 */
+export type MenuType = 'M' | 'C' | 'F'
+
+/** 菜单查询参数 */
+export interface MenuQuery {
+  menuName?: string
+  status?: string
+}
+
+/** 菜单视图对象 */
+export interface MenuVO {
+  menuId: number | string
+  menuName: string
+  parentId: number | string
+  parentName?: string
+  orderNum: number
+  path: string
+  component?: string
+  queryParam?: string
+  isFrame: string
+  isCache: string
+  menuType: MenuType
+  visible: string
+  status: string
+  icon: string
+  remark?: string
+  perms?: string
+  createTime?: string
+  children?: MenuVO[]
+}
+
+/** 菜单表单 */
+export interface MenuForm {
+  menuId?: number | string
+  parentId?: number | string
+  parentName?: string
+  menuName: string
+  orderNum: number
+  path: string
+  component?: string
+  queryParam?: string
+  isFrame: string
+  isCache: string
+  menuType: MenuType
+  visible: string
+  status: string
+  icon?: string
+  remark?: string
+  perms?: string
+  query?: string
+}
+
+/** 菜单树选项（用于下拉选择） */
+export interface MenuTreeOption {
+  id: number | string
+  label: string
+  disabled?: boolean
+  children?: MenuTreeOption[]
+}
