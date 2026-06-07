@@ -50,7 +50,7 @@ export function roleMenuTreeselect(roleId: number | string) {
 
 /** 获取菜单树 */
 export function menuTreeselect() {
-  return request.get<RoleMenuTree>('/system/menu/treeselect')
+  return request.get<ApiResponse<RoleMenuTree>>('/system/menu/treeselect')
 }
 
 /** 导出角色 */
