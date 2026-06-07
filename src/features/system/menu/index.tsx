@@ -111,13 +111,26 @@ export default function MenuPage() {
   }
 
   const cascadeTreeData = useMemo(() => {
-    const convert = (menus: MenuVO[]): { key: React.Key; title: string; children?: ReturnType<typeof convert> }[] =>
-      menus.map((menu) => ({
+    // Build tree from flat list using parentId
+    const menuMap = new Map<number | string, MenuVO[]>()
+    for (const menu of menuList) {
+      const parentId = menu.parentId ?? 0
+      if (!menuMap.has(parentId)) {
+        menuMap.set(parentId, [])
+      }
+      menuMap.get(parentId)!.push(menu)
+    }
+
+    const buildTree = (parentId: number | string): { key: React.Key; title: string; children?: ReturnType<typeof buildTree> }[] => {
+      const children = menuMap.get(parentId) ?? []
+      return children.map((menu) => ({
         key: menu.menuId,
         title: menu.menuName,
-        children: menu.children ? convert(menu.children) : undefined,
+        children: menuMap.has(menu.menuId) ? buildTree(menu.menuId) : undefined,
       }))
-    return convert(menuList)
+    }
+
+    return buildTree(0)
   }, [menuList])
 
   const handleDrawerClose = () => {
