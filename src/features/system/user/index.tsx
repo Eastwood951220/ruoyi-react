@@ -19,7 +19,6 @@ import { useUserPage } from './hooks/useUserPage'
 import DeptTreePanel from './components/DeptTreePanel'
 import UserDrawer from './components/UserDrawer'
 import UserImportModal from './components/UserImportModal'
-import AuthRoleModal from './components/AuthRoleModal'
 import styles from './index.module.less'
 
 const { RangePicker } = DatePicker
@@ -274,13 +273,6 @@ export default function UserPage() {
         onClose={() => page.setImportOpen(false)}
         onSuccess={page.handleImportSuccess}
         onDownloadTemplate={page.handleDownloadTemplate}
-      />
-
-      <AuthRoleModal
-        open={page.authRoleOpen}
-        userId={page.authRoleUserId}
-        onClose={page.handleAuthRoleClose}
-        onSuccess={page.handleRefresh}
       />
 
       <Modal

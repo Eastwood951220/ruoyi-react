@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Form, message, Modal } from 'antd'
+import { useNavigate } from '@tanstack/react-router'
 import type { Dayjs } from 'dayjs'
 import {
   listUser,
@@ -36,6 +37,7 @@ type UserSearchForm = {
 type UserListParams = Omit<UserQuery, 'pageNum' | 'pageSize'>
 
 export function useUserPage() {
+  const navigate = useNavigate()
   const currentUserId = useAuthStore((state) => state.userInfo?.userId)
   const [form] = Form.useForm<UserSearchForm>()
 
@@ -53,10 +55,6 @@ export function useUserPage() {
 
   // ---- 导入弹窗 ----
   const [importOpen, setImportOpen] = useState(false)
-
-  // ---- 分配角色 ----
-  const [authRoleOpen, setAuthRoleOpen] = useState(false)
-  const [authRoleUserId, setAuthRoleUserId] = useState<number | string | undefined>()
 
   // ---- 选项数据 ----
   const [initPassword, setInitPassword] = useState('')
@@ -264,13 +262,10 @@ export function useUserPage() {
 
   // ---- 分配角色 ----
   const handleAuthRole = (row: UserVO) => {
-    setAuthRoleUserId(row.userId)
-    setAuthRoleOpen(true)
-  }
-
-  const handleAuthRoleClose = () => {
-    setAuthRoleOpen(false)
-    setAuthRoleUserId(undefined)
+    void navigate({
+      to: '/system/user-auth/role/$userId',
+      params: { userId: String(row.userId) },
+    })
   }
 
   return {
@@ -318,9 +313,6 @@ export function useUserPage() {
     handleDownloadTemplate,
     handleRefresh,
     // 分配角色
-    authRoleOpen,
-    authRoleUserId,
     handleAuthRole,
-    handleAuthRoleClose,
   }
 }
