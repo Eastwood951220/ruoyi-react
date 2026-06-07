@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Key } from 'react'
 import { Button, message, Space, Table } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
@@ -16,6 +16,7 @@ export default function AuthRolePage() {
   const [user, setUser] = useState<Pick<UserVO, 'nickName' | 'userName'> | null>(null)
   const [roles, setRoles] = useState<RoleVO[]>([])
   const [selectedRowKeys, setSelectedRowKeys] = useState<Key[]>([])
+  const mountedRef = useRef(false)
 
   const currentUserId = userId && String(userId).length > 0 ? String(userId) : undefined
 
@@ -32,6 +33,7 @@ export default function AuthRolePage() {
     setLoading(true)
     try {
       const res = await getAuthRole(currentUserId)
+      if (!mountedRef.current) return
       const data = res.data
       if (!data) {
         setUser(null)
@@ -48,12 +50,21 @@ export default function AuthRolePage() {
       setRoles(nextRoles)
       setSelectedRowKeys(nextRoles.filter((role) => role.flag).map((role) => role.roleId))
     } finally {
-      setLoading(false)
+      if (mountedRef.current) {
+        setLoading(false)
+      }
     }
   }, [currentUserId])
 
   useEffect(() => {
-    void fetchRoles()
+    mountedRef.current = true
+    const timer = window.setTimeout(() => {
+      void fetchRoles()
+    }, 0)
+    return () => {
+      window.clearTimeout(timer)
+      mountedRef.current = false
+    }
   }, [fetchRoles])
 
   const handleConfirm = async () => {
