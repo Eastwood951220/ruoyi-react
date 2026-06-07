@@ -10,6 +10,7 @@ interface VirtualCheckTreeProps {
   loading?: boolean
   height?: number
   strictControlLabel?: string
+  defaultCheckStrictly?: boolean
   onCheck: (checkedKeys: React.Key[], halfCheckedKeys: React.Key[]) => void
 }
 
@@ -50,11 +51,12 @@ export default function VirtualCheckTree({
   loading = false,
   height = 300,
   strictControlLabel = '父子联动',
+  defaultCheckStrictly = true,
   onCheck,
 }: VirtualCheckTreeProps) {
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(() => collectFirstLevelExpandedKeys(treeData))
   const [expandedAll, setExpandedAll] = useState(false)
-  const [checkStrictlyValue, setCheckStrictlyValue] = useState(true)
+  const [checkStrictlyValue, setCheckStrictlyValue] = useState(defaultCheckStrictly)
   const checkStrictly = !checkStrictlyValue
 	
 
