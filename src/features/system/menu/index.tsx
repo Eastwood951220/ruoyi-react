@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Button, Form, Input, message, Modal, Space, Tree } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons'
@@ -46,9 +46,11 @@ export default function MenuPage() {
     }
   }, [form])
 
-  useEffect(() => {
+  const initializedRef = useRef<boolean | null>(null)
+  if (initializedRef.current == null) {
+    initializedRef.current = true
     void fetchList()
-  }, [fetchList])
+  }
 
   const handleSearch = () => {
     void fetchList()
