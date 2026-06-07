@@ -41,6 +41,7 @@ export default function DataScopeDrawer(props: DataScopeDrawerProps) {
 	const [checkedKeys, setCheckedKeys] = useState<React.Key[]>([])
 	const [halfCheckedKeys, setHalfCheckedKeys] = useState<React.Key[]>([])
 	const [currentDataScope, setCurrentDataScope] = useState('1')
+	const [deptCheckStrictly, setDeptCheckStrictly] = useState(true)
 	const [roleName, setRoleName] = useState('')
 	const [roleKey, setRoleKey] = useState('')
 	const [deptTreeVersion, setDeptTreeVersion] = useState(0)
@@ -72,6 +73,7 @@ export default function DataScopeDrawer(props: DataScopeDrawerProps) {
 					}
 
 					setCurrentDataScope(nextDataScope)
+					setDeptCheckStrictly(nextDeptCheckStrictly)
 					setDeptTreeData(convertDeptTree(deptRes?.data?.depts ?? []))
 					setCheckedKeys(deptRes?.data?.checkedKeys ?? [])
 					setDeptTreeVersion((version) => version + 1)
@@ -88,6 +90,7 @@ export default function DataScopeDrawer(props: DataScopeDrawerProps) {
 		setCheckedKeys([])
 		setHalfCheckedKeys([])
 		setCurrentDataScope('1')
+		setDeptCheckStrictly(true)
 		setRoleName('')
 		setRoleKey('')
 		setDeptTreeVersion((version) => version + 1)
@@ -155,6 +158,7 @@ export default function DataScopeDrawer(props: DataScopeDrawerProps) {
 							checkedKeys={checkedKeys}
 							halfCheckedKeys={halfCheckedKeys}
 							loading={treeLoading}
+							defaultCheckStrictly={deptCheckStrictly}
 							height={300}
 							onCheck={handleTreeCheck}
 						/>
