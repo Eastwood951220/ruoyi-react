@@ -3,6 +3,7 @@ import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { Layout, Menu } from 'antd'
 import type { MenuProps } from 'antd'
 import { AutoHideScroll } from '@/components/AutoHideScroll'
+import SvgIcon from '@/components/SvgIcon'
 import { usePermissionStore } from '@/store/usePermissionStore'
 import { useThemeStore } from '@/store/useThemeStore'
 import { getActiveMenu, getOpenKeys, isExternal } from '@/routes/routeUtils'
@@ -12,6 +13,11 @@ import styles from './Sidebar.module.less'
 const { Sider } = Layout
 
 type AntdMenuItem = Required<MenuProps>['items'][number]
+
+function renderIcon(icon?: string) {
+  if (!icon) return undefined
+  return <SvgIcon name={icon} size={16} />
+}
 
 /**
  * 递归构建 Ant Design Menu 菜单项。
@@ -27,11 +33,13 @@ function buildMenuItems(routes: MenuRouteItem[]): AntdMenuItem[] {
       const visibleChildren = route.children?.filter((child) => !child.hidden) || []
       const label = route.title || route.name || route.path
       const key = route.link || route.path
+      const icon = renderIcon(route.icon)
 
       if (visibleChildren.length > 0 && (route.alwaysShow || visibleChildren.length > 1)) {
         return {
           key,
           label,
+          icon,
           children: buildMenuItems(visibleChildren),
         }
       }
@@ -41,10 +49,11 @@ function buildMenuItems(routes: MenuRouteItem[]): AntdMenuItem[] {
         return {
           key: child.link || child.path,
           label: child.title || child.name || child.path,
+          icon: renderIcon(child.icon),
         }
       }
 
-      return { key, label }
+      return { key, label, icon }
     })
 }
 
