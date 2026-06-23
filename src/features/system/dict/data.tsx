@@ -1,11 +1,12 @@
-import {useCallback, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {Button, Card, Form, Input, message, Modal, Space, Tag} from 'antd'
 import type {ColumnsType} from 'antd/es/table'
 import {ArrowLeftOutlined, PlusOutlined} from '@ant-design/icons'
-import {useNavigate, useSearch} from '@tanstack/react-router'
+import {useNavigate, useParams} from '@tanstack/react-router'
 import AuthButton from '@/components/AuthButton'
 import BaseListPage from '@/components/BaseListPage'
 import {useTableList} from '@/hooks/useTableList'
+import {getType} from '@/api/system/dict/type'
 import {delData, exportData, listData} from '@/api/system/dict/data'
 import type {DictDataListClass, DictDataQuery, DictDataVO} from '@/api/system/dict/data/types'
 import {useDictStore} from '@/store/useDictStore'
@@ -30,15 +31,25 @@ type DictDataListParams = Omit<DictDataQuery, 'pageNum' | 'pageSize'>
 
 export default function DictDataPage() {
 	const navigate = useNavigate()
-	const search = useSearch({strict: false}) as Record<string, string | undefined>
-	const dictType = search.dictType ?? ''
-	const dictName = search.dictName ?? ''
+	const {dictId} = useParams({strict: false}) as {dictId?: string}
+	const [dictType, setDictType] = useState('')
+	const [dictName, setDictName] = useState('')
 	
 	const [form] = Form.useForm<DictDataSearchForm>()
 	const [selectedRowKeys, setSelectedRowKeys] = useState<Array<number | string>>([])
 	const [drawerOpen, setDrawerOpen] = useState(false)
 	const [editDictCode, setEditDictCode] = useState<number | string | undefined>()
 	const removeDict = useDictStore((state) => state.removeDict)
+
+	useEffect(() => {
+		if (!dictId) return
+		getType(dictId).then((res) => {
+			if (res.data) {
+				setDictType(res.data.dictType)
+				setDictName(res.data.dictName)
+			}
+		})
+	}, [dictId])
 
 	const buildQueryParams = useCallback((formValues: DictDataSearchForm): DictDataListParams => ({
 		dictType,

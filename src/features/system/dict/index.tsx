@@ -29,7 +29,7 @@ export default function DictPage() {
 	const [drawerOpen, setDrawerOpen] = useState(false)
 	const [editDictId, setEditDictId] = useState<number | string | undefined>()
 	const cleanDict = useDictStore((state) => state.cleanDict)
-
+	
 	const buildQueryParams = useCallback((formValues: DictSearchForm): DictTypeListParams => {
 		const beginTime = formValues.dateRange?.[0]?.format('YYYY-MM-DD') ?? ''
 		const endTime = formValues.dateRange?.[1]?.format('YYYY-MM-DD') ?? ''
@@ -40,7 +40,7 @@ export default function DictPage() {
 			endTime,
 		}
 	}, [])
-
+	
 	const {
 		dataList,
 		total,
@@ -117,10 +117,10 @@ export default function DictPage() {
 		refresh()
 	}
 	
-	const handleViewData = (record: DictTypeVO) => {
+	const handleViewData = (row: DictTypeVO) => {
 		void navigate({
-			to: '/system/dict-data',
-			search: {dictType: record.dictType, dictName: record.dictName},
+			to: '/system/dict-data/index/$dictId',
+			params: {dictId: row.dictId}
 		})
 	}
 	
